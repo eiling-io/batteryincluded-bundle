@@ -1,0 +1,21 @@
+parameters:
+    vendor_dir: '%kernel.project_dir%/vendor'
+
+services:
+    _defaults:
+        autowire: true
+        autoconfigure: true
+
+    Batteryincluded\BatteryincludedBundle\:
+        resource: '../src'
+
+    BatteryIncludedSdk\:
+        resource : '%vendor_dir%/batteryincluded/batteryincluded-php-sdk/src'
+
+    BatteryIncludedSdk\Client\ApiClient:
+        class: BatteryIncludedSdk\Client\ApiClient
+        arguments:
+            $httpClient: '@BatteryIncludedSdk\Client\CurlHttpClient'
+            $baseUrl: '%env(resolve:BATTERYINCLUDED_BASE_URL)%'
+            $collection: '%env(resolve:BATTERYINCLUDED_COLLECTION)%'
+            $apiKey: '%env(resolve:BATTERYINCLUDED_API_KEY)%'
