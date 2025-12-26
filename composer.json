@@ -6,6 +6,11 @@
             "Batteryincluded\\BatteryincludedBundle\\": "src/"
         }
     },
+    "autoload-dev": {
+        "psr-4": {
+            "Batteryincluded\\BatteryincludedBundleTests\\": "tests/"
+        }
+    },
     "authors": [
         {
             "name": "teiling88",
@@ -19,6 +24,10 @@
         "symfony/yaml": "^7.0 | ^8.0",
         "symfony/config": "^7.0 | ^8.0",
         "symfony/http-kernel": "^7.0 | ^8.0",
-        "batteryincluded/batteryincluded-php-sdk": "^0.5.2"
+        "batteryincluded/batteryincluded-php-sdk": "^0.5.2",
+        "ext-curl": "*"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^11"
     }
 }
