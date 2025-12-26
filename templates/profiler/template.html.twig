@@ -1,0 +1,24 @@
+{# templates/data_collector/template.html.twig #}
+{% extends '@WebProfiler/Profiler/layout.html.twig' %}
+
+{% block menu %}
+    <span class="label">
+        <span class="icon">
+        {{ include('@Batteryincluded/collector/icon.svg') }}
+        </span>
+        <strong>Batteryincluded</strong>
+    </span>
+{% endblock %}
+
+{% block panel %}
+    <h2>Batteryincluded</h2>
+    <div class="sf-tabs">
+        <div class="tab">
+            <h3 class="tab-title">Requests</h3>
+
+            <div class="tab-content">
+                <pre>{{ dump(collector.responses) }}</pre>
+            </div>
+        </div>
+    </div>
+{% endblock %}
