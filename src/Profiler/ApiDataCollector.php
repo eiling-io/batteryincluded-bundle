@@ -22,12 +22,7 @@ class ApiDataCollector extends DataCollector
         ];
     }
 
-    public function getMethod(): string
-    {
-        return $this->data['method'];
-    }
-
-    public function getRequests()
+   public function getRequests()
     {
         return $this->data['requests'];
     }
