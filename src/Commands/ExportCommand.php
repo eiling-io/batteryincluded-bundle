@@ -36,6 +36,7 @@ class ExportCommand extends Command
             foreach($provider->getBatches(500) as $batch) {
                $this->syncService->syncFullBatchElements($transactionId, false, ...$batch);
             }
+            $output->writeln(get_class($provider) . ' export done, committing...');
             $this->syncService->syncFullBatchElements($transactionId, true, ...$batch);
         }
         $output->writeln('<info>Export done.</info>');
