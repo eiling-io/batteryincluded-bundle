@@ -15,7 +15,13 @@ services:
     BatteryIncludedSdk\Client\ApiClient:
         class: BatteryIncludedSdk\Client\ApiClient
         arguments:
-            $httpClient: '@BatteryIncludedSdk\Client\CurlHttpClient'
+            $httpClient: '@Batteryincluded\BatteryincludedBundle\Client\CurlHttpClient'
             $baseUrl: '%env(resolve:BATTERYINCLUDED_BASE_URL)%'
             $collection: '%env(resolve:BATTERYINCLUDED_COLLECTION)%'
             $apiKey: '%env(resolve:BATTERYINCLUDED_API_KEY)%'
+    Batteryincluded\BatteryincludedBundle\Profiler\ApiDataCollector:
+        tags:
+            -
+                name: data_collector
+                id: 'Batteryincluded\BatteryincludedBundle\Profiler\ApiDataCollector'
+                template: '@Batteryincluded/profiler/template.html.twig'
