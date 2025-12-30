@@ -13,9 +13,8 @@ class ExportCommand extends Command
 {
     public function __construct(
         private readonly SyncService $syncService,
-        private readonly iterable $provider
-    )
-    {
+        private readonly iterable $provider,
+    ) {
         parent::__construct();
     }
 
@@ -28,9 +27,9 @@ class ExportCommand extends Command
     {
         $transactionId = 'Transaction_' . time();
 
-        foreach($this->provider as $provider) {
-            foreach($provider->getBatches(500) as $batch) {
-               $this->syncService->syncFullBatchElements($transactionId, false, ...$batch);
+        foreach ($this->provider as $provider) {
+            foreach ($provider->getBatches(500) as $batch) {
+                $this->syncService->syncFullBatchElements($transactionId, false, ...$batch);
             }
             $output->writeln(get_class($provider) . ' export done, committing...');
             $this->syncService->syncFullBatchElements($transactionId, true, ...$batch);
