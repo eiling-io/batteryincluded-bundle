@@ -30,7 +30,7 @@ jobs:
               run: ./tools/php-cs-fixer fix --config=.php-cs-fixer.php --dry-run
 
             - name: run phpstan
-              run: ./tools/phpstan analyse -l 5 ./src
+              run: ./tools/phpstan analyse -c phpstan.neon
 
 #            - name: run tests
 #              run: ./vendor/bin/phpunit --stop-on-failure --stop-on-error
