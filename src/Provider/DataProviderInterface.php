@@ -8,8 +8,8 @@ use BatteryIncludedSdk\Dto\AbstractDto;
 use Generator;
 use Symfony\Component\DependencyInjection\Attribute\AutoconfigureTag;
 
-#[AutoconfigureTag(name: 'batteryincluded.data_provider')]
-interface DataProvider
+#[AutoconfigureTag]
+interface DataProviderInterface
 {
     /**
      * @return Generator<array-key, array<AbstractDto>>

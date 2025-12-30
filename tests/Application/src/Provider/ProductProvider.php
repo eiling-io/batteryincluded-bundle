@@ -2,13 +2,13 @@
 
 namespace App\Provider;
 
-use Batteryincluded\BatteryincludedBundle\Provider\DataProvider;
+use Batteryincluded\BatteryincludedBundle\Provider\DataProviderInterface;
 use BatteryIncludedSdk\Dto\CategoryDto;
 use BatteryIncludedSdk\Dto\ProductBaseDto;
 use BatteryIncludedSdk\Dto\ProductPropertyDto;
 use Generator;
 
-class ProductProvider implements DataProvider
+class ProductProvider implements DataProviderInterface
 {
     public function getBatches(int $batchSize): Generator
     {

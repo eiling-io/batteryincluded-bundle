@@ -19,9 +19,17 @@ services:
             $baseUrl: '%env(resolve:BATTERYINCLUDED_BASE_URL)%'
             $collection: '%env(resolve:BATTERYINCLUDED_COLLECTION)%'
             $apiKey: '%env(resolve:BATTERYINCLUDED_API_KEY)%'
+
     Batteryincluded\BatteryincludedBundle\Profiler\ApiDataCollector:
         tags:
             -
                 name: data_collector
                 id: 'Batteryincluded\BatteryincludedBundle\Profiler\ApiDataCollector'
                 template: '@Batteryincluded/profiler/template.html.twig'
+
+    Batteryincluded\BatteryincludedBundle\Commands\ExportCommand:
+        arguments:
+            $syncService: '@BatteryIncludedSdk\Service\SyncService'
+            $provider: !tagged_iterator 'Batteryincluded\BatteryincludedBundle\Provider\DataProviderInterface'
+        tags:
+            - { name: console.command, command: 'bi:export' }
