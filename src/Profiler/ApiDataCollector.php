@@ -22,14 +22,14 @@ class ApiDataCollector extends DataCollector
         ];
     }
 
-   public function getRequests()
+    public function getRequests()
     {
         return $this->data['requests'];
     }
 
     public function getData(): Data
     {
-        return  $this->cloneVar($this->data);
+        return $this->cloneVar($this->data);
     }
 
     public function getName(): string

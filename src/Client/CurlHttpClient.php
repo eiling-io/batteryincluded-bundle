@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Batteryincluded\BatteryincludedBundle\Client;
 
-use BatteryIncludedSdk\Service\Response;
 use BatteryIncludedSdk\Client\HttpClientInterface;
+use BatteryIncludedSdk\Service\Response;
 
 class CurlHttpClient implements HttpClientInterface
 {
