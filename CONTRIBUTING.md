@@ -64,8 +64,8 @@ The bundle uses the sdk `dev-main`. Changes which need a new sdk feature belong 
 | `make ddev-test` | PHPUnit, unit tests plus functional tests with a minimal kernel, the api is mocked |
 | `make ddev-quality` | all of the above |
 
-Run phpstan in DDEV (PHP 8.3): there Composer installs Symfony 7.4. With PHP ≥ 8.4 Composer installs Symfony 8, which
-the bundled phpstan 1.12 cannot analyse (it reports the Symfony classes as unknown).
+phpstan 2 analyses both Symfony 7 (PHP 8.2/8.3) and Symfony 8 (PHP ≥ 8.4, uses PHP 8.4 syntax). phpstan 1.x cannot
+parse Symfony 8 and reports all its classes as unknown, keep `tools/phpstan` on 2.x.
 
 The CI (`.github/workflows/php.yml`) runs code style (dry run), phpstan and PHPUnit on PHP 8.2 to 8.5. The tests never
 call the real api, try changes against a test collection in the test application as well. The tools in `tools/` are managed with

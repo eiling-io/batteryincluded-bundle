@@ -135,6 +135,7 @@ class ExportCommand extends Command
 
         $syncService = $this->collections->get($collection, SyncService::class);
         $transactionId = 'bi-export-' . date('YmdHis') . '-' . bin2hex(random_bytes(3));
+        /** @var array<int, array{class: string, documents: int, batches: int, time: float}> $statistics */
         $statistics = [];
         $documentIds = [];
         $duplicates = [];

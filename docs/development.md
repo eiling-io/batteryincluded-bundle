@@ -26,7 +26,7 @@ and conventions are described in
 |---|---|
 | `make ddev-test` | PHPUnit: unit tests plus functional tests with a minimal kernel |
 | `make ddev-cs` | php-cs-fixer (`@Symfony`, `@PSR12`), fixes the files |
-| `make ddev-phpstan` | phpstan level 5 on `src/` |
+| `make ddev-phpstan` | phpstan 2, level 5 on `src/`, analyses Symfony 7 and 8 |
 | `make ddev-lint` | `lint:twig` and `lint:container` of the test application |
 | `make ddev-quality` | all of the above |
 
