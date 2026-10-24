@@ -1,0 +1,30 @@
+# all settings are optional, without this file the bundle reads BATTERYINCLUDED_* from the environment
+batteryincluded:
+    # base_url: '%env(BATTERYINCLUDED_BASE_URL)%'
+    # collection: '%env(BATTERYINCLUDED_COLLECTION)%'
+    # api_key: '%env(BATTERYINCLUDED_API_KEY)%'
+
+    # further collections, e.g. one per sales channel: `BrowseService $chBrowseService`, `bi:export --collection=ch`
+    # collections:
+    #     ch:
+    #         collection: '%env(BATTERYINCLUDED_COLLECTION_CH)%'
+    #         api_key: '%env(BATTERYINCLUDED_API_KEY_CH)%'
+
+    # api calls with the Symfony http client (timeouts, retries, MockHttpClient in tests) instead of curl
+    http_client: batteryincluded.http_client
+
+    cache:
+        enabled: true
+        ttl: 300
+
+    logging:
+        slow_threshold: 1000
+
+framework:
+    http_client:
+        scoped_clients:
+            batteryincluded.http_client:
+                scope: 'https://api\.batteryincluded\.io/'
+                timeout: 10
+                retry_failed:
+                    max_retries: 2

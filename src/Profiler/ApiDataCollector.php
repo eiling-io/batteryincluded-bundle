@@ -20,11 +20,12 @@ class ApiDataCollector extends DataCollector
         'bundle' => 'batteryincluded/batteryincluded-bundle',
     ];
 
+    /**
+     * @param array<string, array{baseUrl: string, collection: string, apiKey: string}> $collections
+     */
     public function __construct(
         private readonly TraceableHttpClient $httpClient,
-        private readonly string $baseUrl,
-        private readonly string $collection,
-        private readonly string $apiKey,
+        private readonly array $collections = [],
     ) {
     }
 
@@ -36,11 +37,7 @@ class ApiDataCollector extends DataCollector
             'calls' => $calls,
             'duration' => array_sum(array_column($calls, 'duration')),
             'errors' => count(array_filter($calls, static fn (array $call) => $call['isError'])),
-            'config' => [
-                'baseUrl' => $this->baseUrl,
-                'collection' => $this->collection,
-                'apiKey' => $this->maskApiKey($this->apiKey),
-            ],
+            'collections' => array_map(fn (array $config) => ['apiKey' => self::maskApiKey($config['apiKey'])] + $config, $this->collections),
             'versions' => array_map(static function (string $package) {
                 if (!class_exists(InstalledVersions::class) || !InstalledVersions::isInstalled($package)) {
                     return null;
@@ -75,11 +72,21 @@ class ApiDataCollector extends DataCollector
     }
 
     /**
+     * Configuration of the default collection.
+     *
      * @return array{baseUrl: string, collection: string, apiKey: string}
      */
     public function getConfig(): array
     {
-        return $this->data['config'] ?? ['baseUrl' => '', 'collection' => '', 'apiKey' => ''];
+        return $this->getCollections()['default'] ?? ['baseUrl' => '', 'collection' => '', 'apiKey' => ''];
+    }
+
+    /**
+     * @return array<string, array{baseUrl: string, collection: string, apiKey: string}> api keys masked
+     */
+    public function getCollections(): array
+    {
+        return $this->data['collections'] ?? [];
     }
 
     /**
@@ -111,8 +118,16 @@ class ApiDataCollector extends DataCollector
         $path = (string) parse_url($url, PHP_URL_PATH);
         parse_str((string) parse_url($url, PHP_URL_QUERY), $query);
         // the endpoint without base url and collection, e.g. `/documents/browse`
-        $collectionPath = (string) parse_url($this->baseUrl . $this->collection, PHP_URL_PATH);
-        $endpoint = $collectionPath !== '' && str_starts_with($path, $collectionPath) ? mb_substr($path, mb_strlen($collectionPath)) : $path;
+        $endpoint = $path;
+        $collectionName = null;
+        foreach ($this->collections as $name => $config) {
+            $collectionPath = (string) parse_url($config['baseUrl'] . $config['collection'], PHP_URL_PATH);
+            if ($collectionPath !== '' && str_starts_with($path, $collectionPath . '/')) {
+                $endpoint = mb_substr($path, mb_strlen($collectionPath));
+                $collectionName = $name;
+                break;
+            }
+        }
 
         $responseRaw = (string) $call['responseRaw'];
         $response = json_decode($responseRaw, true);
@@ -122,6 +137,8 @@ class ApiDataCollector extends DataCollector
             'method' => $call['method'],
             'url' => $url,
             'endpoint' => $endpoint === '' ? '/' : $endpoint,
+            'collection' => $collectionName,
+            'cached' => (bool) ($call['cached'] ?? false),
             'statusCode' => $statusCode,
             'duration' => (float) $call['duration'],
             'error' => $call['error'],
@@ -207,10 +224,10 @@ class ApiDataCollector extends DataCollector
     {
         [$name, $value] = array_pad(explode(':', $header, 2), 2, '');
 
-        return mb_strtolower(mb_trim($name)) === self::API_KEY_HEADER ? $name . ': ' . $this->maskApiKey(mb_trim($value)) : $header;
+        return mb_strtolower(mb_trim($name)) === self::API_KEY_HEADER ? $name . ': ' . self::maskApiKey(mb_trim($value)) : $header;
     }
 
-    private function maskApiKey(string $apiKey): string
+    public static function maskApiKey(string $apiKey): string
     {
         return $apiKey === '' ? '' : mb_substr($apiKey, 0, 4) . str_repeat('•', 8);
     }

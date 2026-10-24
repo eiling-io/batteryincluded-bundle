@@ -1,0 +1,11 @@
+framework:
+    messenger:
+        transports:
+            # https://symfony.com/doc/current/messenger.html#transport-configuration
+            # async: '%env(MESSENGER_TRANSPORT_DSN)%'
+            sync: 'sync://'
+
+        routing:
+            # route them to an async transport in a shop, the test application handles them immediately
+            'Batteryincluded\BatteryincludedBundle\Messenger\SyncDocumentsMessage': sync
+            'Batteryincluded\BatteryincludedBundle\Messenger\DeleteDocumentsMessage': sync

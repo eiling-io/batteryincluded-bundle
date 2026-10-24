@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Batteryincluded\BatteryincludedBundle\Demo;
 
+use Batteryincluded\BatteryincludedBundle\Http\RequestFilterParser;
 use BatteryIncludedSdk\I18n\I18nResolver;
 use BatteryIncludedSdk\Shop\FacetCategoryDto;
 use BatteryIncludedSdk\Shop\FacetDto;
@@ -77,8 +78,10 @@ class DemoShop implements ResetInterface
 
     private ?array $translations = null;
 
-    public function __construct(private readonly UrlGeneratorInterface $urlGenerator)
-    {
+    public function __construct(
+        private readonly UrlGeneratorInterface $urlGenerator,
+        private readonly RequestFilterParser $filterParser,
+    ) {
     }
 
     /**
@@ -219,31 +222,7 @@ class DemoShop implements ResetInterface
      */
     public function requestFilters(Request $request): array
     {
-        $filters = [];
-        foreach ($request->query->all('f') as $field => $values) {
-            if (!is_array($values)) {
-                continue;
-            }
-
-            if (array_key_exists('from', $values) || array_key_exists('till', $values)) {
-                $from = mb_trim((string) ($values['from'] ?? ''));
-                $till = mb_trim((string) ($values['till'] ?? ''));
-                if (is_numeric($from) || is_numeric($till)) {
-                    $filters[$field] = [
-                        'from' => is_numeric($from) ? $from : '0',
-                        'till' => is_numeric($till) ? $till : (string) PHP_INT_MAX,
-                    ];
-                }
-                continue;
-            }
-
-            $values = array_values(array_unique(array_filter(array_map('strval', $values), static fn ($value) => $value !== '')));
-            if ($values !== []) {
-                $filters[$field] = $values;
-            }
-        }
-
-        return $filters;
+        return $this->filterParser->parse($request);
     }
 
     public function translation(string $key): mixed

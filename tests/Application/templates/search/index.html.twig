@@ -1,4 +1,14 @@
 {% extends 'base.html.twig' %}
 {% block body %}
-
+    <form>
+        <input type="search" name="q" value="{{ searchStruct.query }}">
+        <button>Search</button>
+    </form>
+    <p>{{ result.found }} hits, page {{ result.page }} of {{ result.pages }}</p>
+    <ol start="{{ (searchStruct.page - 1) * searchStruct.perPage + 1 }}">
+        {% for hit in result.hits %}
+            {% set data = hit.document['_' ~ hit.document.type] ?? {} %}
+            <li>{{ hit.document.id }}: {{ data.name ?? data.title ?? '' }}</li>
+        {% endfor %}
+    </ol>
 {% endblock %}

@@ -2,12 +2,18 @@
 
 namespace App\Provider;
 
-use Batteryincluded\BatteryincludedBundle\Provider\DataProviderInterface;
+use Batteryincluded\BatteryincludedBundle\Provider\PartialDataProviderInterface;
 use BatteryIncludedSdk\Dto\BlogBaseDto;
 use Generator;
 
-class BlogProvider implements DataProviderInterface
+class BlogProvider implements PartialDataProviderInterface
 {
+    // the test data is generated, a shop would load only the requested ids from its database
+    public function getByIds(array $ids): iterable
+    {
+        return array_filter($this->generateBlogs(10), static fn ($document) => in_array($document->getIdentifier(), $ids, true));
+    }
+
     public function getBatches(int $batchSize): Generator
     {
         $blogs = $this->generateBlogs(10);

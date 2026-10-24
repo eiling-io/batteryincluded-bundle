@@ -12,11 +12,14 @@ to try the demo shop and to look at the api calls in the web profiler.
 | `config/routes/batteryincluded.yaml` | Imports the demo shop routes of the bundle at `/` |
 | `src/Provider/ProductProvider.php` | 720 products (smartphones, tablets, laptops), German and English translations, prices and status for Germany, Austria and Switzerland, the same data as `tests/Helper.php` of the sdk (with placeholder images) |
 | `src/Provider/BlogProvider.php` | 10 blog posts with German and English translations |
-| `src/Controller/SearchController.php` | Minimal example of a browse call in an own controller (`/search`) |
+| `src/Controller/SearchController.php` | Minimal example of an own controller (`/search`), the `BrowseSearchStruct` argument is filled from the query string |
+| `config/packages/batteryincluded.yaml` | Bundle configuration: scoped Symfony http client with retries, cache, logging |
+| `config/packages/messenger.yaml` | Routes the BatteryIncluded messages to the `sync` transport |
 | `.env`, `.env.dev` | Defaults, the BatteryIncluded variables are empty on purpose |
 | `.env.dev.local` | Your collection and api key, ignored by git |
 
-Both providers implement `DataProviderInterface`, they are tagged automatically and exported by `bi:export`.
+Both providers implement `PartialDataProviderInterface`, they are tagged automatically, exported by `bi:export` and
+deliver single documents to `bi:sync`.
 
 ## Setup
 
@@ -42,15 +45,23 @@ Never put credentials into `.env` or `.env.dev`, both are committed.
 ```bash
 make ddev-export
 # or
-ddev exec -d /var/www/html/tests/Application "bin/console bi:export -v"
+ddev exec -d /var/www/html/tests/Application "bin/console bi:export --force -v"
 ```
 
-The command sends the documents of all providers in batches of 500 within one transaction and commits it at the end.
+The command sends the documents of all providers in batches of 500 within one transaction and commits it with the
+last batch. `--dry-run` checks the providers without sending anything.
 
 > **Warning:** this is a full import, all other documents of the collection are deleted. Use a dedicated test collection.
 
-With `-v` every api response is printed, the command stops with exit code 1 as soon as the api answers with an
-error status.
+With `-v` every api response is printed, the command stops with exit code 1 before the commit as soon as the api
+answers with an error status or rejects documents.
+
+Check the connection and the data with
+
+```bash
+ddev exec -d /var/www/html/tests/Application "bin/console bi:status"
+ddev exec -d /var/www/html/tests/Application "bin/console bi:search laptop --facets"
+```
 
 ## Demo shop
 

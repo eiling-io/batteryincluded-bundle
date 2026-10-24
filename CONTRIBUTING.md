@@ -22,12 +22,17 @@ php -S 127.0.0.1:8000 -t tests/Application/public
 
 | Path | Content |
 |---|---|
-| `src/BatteryincludedBundle.php` | Loads `config/services.yaml`, plus `config/services_demo.yaml` if the TwigBundle is enabled |
-| `src/Client/TraceableHttpClient.php` | Decorates the curl client of the sdk and logs every call for the profiler and the stopwatch |
-| `src/Commands/ExportCommand.php` | `bi:export`, full import of all `DataProviderInterface` services |
+| `src/BatteryincludedBundle.php` | Configuration tree, loads `config/services*.yaml` and registers the http client chain plus one `ApiClient` and the sdk services per collection |
+| `src/Client/` | Http client chain: `TraceableHttpClient` (profiler, stopwatch) → `CachingHttpClient` → `LoggingHttpClient` → curl or `SymfonyHttpClient` |
+| `src/Collection/CollectionRegistry.php` | Configured collections, their sdk services and data providers |
+| `src/Commands/` | `bi:export`, `bi:sync`, `bi:delete`, `bi:status`, `bi:search` |
+| `src/Sync/` | `DocumentSynchronizer` (single documents) and `SyncResult` |
+| `src/Messenger/`, `config/services_messenger.yaml` | Messages and handlers, registered if symfony/messenger is installed |
+| `src/Http/` | `SearchStructValueResolver` (controller arguments), `MapSearchStruct`, `RequestFilterParser` |
+| `src/Provider/` | `DataProviderInterface` and its optional extensions |
 | `src/Profiler/ApiDataCollector.php`, `templates/profiler/` | Toolbar item and profiler panel |
 | `src/Demo/`, `templates/demo/`, `config/demo/`, `config/routes/demo.yaml` | Demo shop |
-| `config/services.yaml` | Service definitions, the classes of the sdk are registered as services, `ApiClient` gets its configuration from the environment |
+| `config/services.yaml` | Service definitions, the classes of the sdk are registered as services |
 | `tests/Application/` | Symfony application to try the bundle |
 
 The bundle uses the sdk `dev-main`. Changes which need a new sdk feature belong into the
@@ -67,4 +72,5 @@ tests yet, so test changes manually in the test application. The tools in `tools
 - `declare(strict_types=1)` in every file, short comments which explain why.
 - Never commit credentials. Collection and api key belong into `tests/Application/.env.dev.local`.
 - The profiler must not expose the api key, mask it like `ApiDataCollector::maskApiKey()` does.
-- `bi:export` is a full import, test it against a dedicated test collection only.
+- `bi:export`, `bi:sync` and `bi:delete` write to the collection, test them against a dedicated test collection only.
+- Optional integrations (messenger, lock, cache, http client) must not be required, guard them like `config/services_messenger.yaml`.

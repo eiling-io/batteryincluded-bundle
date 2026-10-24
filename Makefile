@@ -17,7 +17,7 @@ ddev-install:
 .PHONY: ddev-export
 ddev-export:     ## exports the test data of the test application to the configured collection (full import)
 ddev-export:
-	ddev exec -d /var/www/html/tests/Application "bin/console bi:export -v"
+	ddev exec -d /var/www/html/tests/Application "bin/console bi:export --force -v"
 
 .PHONY: ddev-quality
 ddev-quality:     ## executes all quality scripts in the running ddev container

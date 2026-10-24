@@ -418,7 +418,7 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *         enabled?: bool|Param, // Default: false
  *     },
  *     lock?: Param|bool|string|array{ // Lock configuration
- *         enabled?: bool|Param, // Default: false
+ *         enabled?: bool|Param, // Default: true
  *         resources?: Param|string|array<string, Param|string|list<scalar|Param|null>>,
  *     },
  *     semaphore?: Param|bool|string|array{ // Semaphore configuration
@@ -426,7 +426,7 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *         resources?: Param|string|array<string, scalar|Param|null>,
  *     },
  *     messenger?: bool|array{ // Messenger configuration
- *         enabled?: bool|Param, // Default: false
+ *         enabled?: bool|Param, // Default: true
  *         routing?: array<string, Param|string|array{ // Default: []
  *             senders?: list<scalar|Param|null>,
  *         }>,
@@ -472,7 +472,7 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *     },
  *     disallow_search_engine_index?: bool|Param, // Enabled by default when debug is enabled. // Default: true
  *     http_client?: bool|array{ // HTTP Client configuration
- *         enabled?: bool|Param, // Default: false
+ *         enabled?: bool|Param, // Default: true
  *         max_host_connections?: int|Param, // The maximum number of connections to a single host.
  *         default_options?: array{
  *             headers?: array<string, mixed>,
@@ -690,6 +690,34 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *         enabled?: bool|Param, // Default: false
  *     },
  * }
+ * @psalm-type BatteryincludedConfig = array{
+ *     base_url?: scalar|Param|null, // Base url of the api, the collection is appended // Default: "%env(resolve:default:batteryincluded.default_base_url:BATTERYINCLUDED_BASE_URL)%"
+ *     collection?: scalar|Param|null, // Collection of the default client, e.g. customer.my-shop // Default: "%env(resolve:BATTERYINCLUDED_COLLECTION)%"
+ *     api_key?: scalar|Param|null, // Default: "%env(resolve:BATTERYINCLUDED_API_KEY)%"
+ *     collections?: array<string, array{ // Default: []
+ *         collection?: scalar|Param|null,
+ *         api_key?: scalar|Param|null,
+ *         base_url?: scalar|Param|null, // Defaults to the base url of the default client // Default: null
+ *     }>,
+ *     http_client?: scalar|Param|null, // Service id of a Symfony http client (e.g. "http_client" or a scoped client with retries), null uses curl // Default: null
+ *     cache?: bool|array{ // Caches GET responses of rarely changing endpoints
+ *         enabled?: bool|Param, // Default: false
+ *         pool?: scalar|Param|null, // Default: "cache.app"
+ *         ttl?: int|Param, // Seconds // Default: 300
+ *         endpoints?: list<scalar|Param|null>,
+ *     },
+ *     logging?: bool|array{ // Logs failed and slow api calls to the "batteryincluded" channel
+ *         enabled?: bool|Param, // Default: true
+ *         slow_threshold?: int|Param, // Milliseconds, 0 disables the warning // Default: 1000
+ *     },
+ *     export?: array{
+ *         batch_size?: int|Param, // Default: 500
+ *     },
+ *     search?: array{ // Defaults of the BrowseSearchStruct controller argument
+ *         per_page?: int|Param, // Default: 24
+ *         max_per_page?: int|Param, // Default: 100
+ *     },
+ * }
  * @psalm-type TwigConfig = array{
  *     form_themes?: list<scalar|Param|null>,
  *     globals?: array<string, array{ // Default: []
@@ -789,6 +817,7 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *     parameters?: ParametersConfig,
  *     services?: ServicesConfig,
  *     framework?: FrameworkConfig,
+ *     batteryincluded?: BatteryincludedConfig,
  *     twig?: TwigConfig,
  *     twig_extra?: TwigExtraConfig,
  *     "when@dev"?: array{
@@ -796,6 +825,7 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *         parameters?: ParametersConfig,
  *         services?: ServicesConfig,
  *         framework?: FrameworkConfig,
+ *         batteryincluded?: BatteryincludedConfig,
  *         twig?: TwigConfig,
  *         twig_extra?: TwigExtraConfig,
  *         maker?: MakerConfig,
@@ -806,6 +836,7 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *         parameters?: ParametersConfig,
  *         services?: ServicesConfig,
  *         framework?: FrameworkConfig,
+ *         batteryincluded?: BatteryincludedConfig,
  *         twig?: TwigConfig,
  *         twig_extra?: TwigExtraConfig,
  *     },
@@ -814,6 +845,7 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *         parameters?: ParametersConfig,
  *         services?: ServicesConfig,
  *         framework?: FrameworkConfig,
+ *         batteryincluded?: BatteryincludedConfig,
  *         twig?: TwigConfig,
  *         twig_extra?: TwigExtraConfig,
  *         web_profiler?: WebProfilerConfig,
