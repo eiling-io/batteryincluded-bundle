@@ -31,15 +31,28 @@
         "symfony/routing": "^7.0 | ^8.0",
         "symfony/http-foundation": "^7.0 | ^8.0",
         "twig/twig": "^3.0",
-        "symfony/service-contracts": "^3.0"
+        "symfony/service-contracts": "^3.0",
+        "symfony/polyfill-php84": "^1.31"
     },
     "require-dev": {
         "phpunit/phpunit": "^11",
-        "symfony/stopwatch": "^7.0 | ^8.0"
+        "symfony/stopwatch": "^7.0 | ^8.0",
+        "symfony/http-client": "^7.0 | ^8.0",
+        "symfony/messenger": "^7.0 | ^8.0",
+        "symfony/lock": "^7.0 | ^8.0",
+        "symfony/cache": "^7.0 | ^8.0",
+        "symfony/framework-bundle": "^7.0 | ^8.0",
+        "doctrine/orm": "^3.3",
+        "symfony/event-dispatcher": "^7.0 | ^8.0"
     },
     "suggest": {
         "symfony/twig-bundle": "Renders the demo shop and the web profiler panel",
         "symfony/web-profiler-bundle": "Shows the BatteryIncluded api calls in the toolbar and profiler",
-        "ext-intl": "Localized prices, numbers and dates in the demo shop"
+        "ext-intl": "Localized prices, numbers and dates in the demo shop",
+        "symfony/http-client": "Sends the api calls with a (scoped) Symfony http client, see batteryincluded.http_client",
+        "symfony/messenger": "Syncs and deletes documents asynchronously with SyncDocumentsMessage and DeleteDocumentsMessage",
+        "symfony/lock": "Prevents parallel runs of bi:export with the lock of the application",
+        "symfony/cache": "Caches rarely changing api responses, see batteryincluded.cache",
+        "symfony/monolog-bundle": "Logs failed and slow api calls to the batteryincluded channel"
     }
 }

@@ -36,6 +36,7 @@ class TraceableHttpClient implements HttpClientInterface, ResetInterface
             'responseRaw' => null,
             'duration' => 0.0,
             'error' => null,
+            'cached' => false,
         ];
 
         $event = $this->stopwatch?->start('BatteryIncluded ' . $method . ' ' . parse_url($url, PHP_URL_PATH), 'batteryincluded');
@@ -44,6 +45,7 @@ class TraceableHttpClient implements HttpClientInterface, ResetInterface
             $response = $this->httpClient->send($url, $method, $header, $data);
             $entry['statusCode'] = $response->getStatusCode();
             $entry['responseRaw'] = $response->getRawResponse();
+            $entry['cached'] = $response instanceof CachedResponse;
 
             return $response;
         } catch (\Throwable $exception) {

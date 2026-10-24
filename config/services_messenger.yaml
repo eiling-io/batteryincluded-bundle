@@ -1,0 +1,9 @@
+# message handlers, registered as soon as symfony/messenger is installed
+services:
+    _defaults:
+        autowire: true
+        autoconfigure: true
+
+    Batteryincluded\BatteryincludedBundle\Messenger\:
+        resource: '../src/Messenger'
+        exclude: '../src/Messenger/*Message.php'

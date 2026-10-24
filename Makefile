@@ -17,11 +17,16 @@ ddev-install:
 .PHONY: ddev-export
 ddev-export:     ## exports the test data of the test application to the configured collection (full import)
 ddev-export:
-	ddev exec -d /var/www/html/tests/Application "bin/console bi:export -v"
+	ddev exec -d /var/www/html/tests/Application "bin/console bi:export --force -v"
 
 .PHONY: ddev-quality
 ddev-quality:     ## executes all quality scripts in the running ddev container
-ddev-quality: ddev-cs ddev-phpstan ddev-lint
+ddev-quality: ddev-cs ddev-phpstan ddev-lint ddev-test
+
+.PHONY: ddev-test
+ddev-test:     ## executes the phpunit tests in the running ddev container, the api is mocked
+ddev-test:
+	ddev exec -s web "vendor/bin/phpunit"
 
 .PHONY: ddev-cs
 ddev-cs:     ## executes code style scripts in the running ddev container

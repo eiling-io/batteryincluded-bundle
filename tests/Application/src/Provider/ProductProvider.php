@@ -2,7 +2,7 @@
 
 namespace App\Provider;
 
-use Batteryincluded\BatteryincludedBundle\Provider\DataProviderInterface;
+use Batteryincluded\BatteryincludedBundle\Provider\PartialDataProviderInterface;
 use BatteryIncludedSdk\Dto\CategoryDto;
 use BatteryIncludedSdk\Dto\ProductBaseDto;
 use BatteryIncludedSdk\Dto\ProductPropertyDto;
@@ -11,7 +11,7 @@ use Generator;
 /**
  * Test data of the sdk (tests/Helper.php): products with german and english translations and prices per country.
  */
-class ProductProvider implements DataProviderInterface
+class ProductProvider implements PartialDataProviderInterface
 {
     private const MANUFACTURER = 'BatteryIncluded';
 
@@ -44,6 +44,12 @@ class ProductProvider implements DataProviderInterface
         'Tablet' => [11.0, 13.0],
         'Laptop' => [14.2, 16.2],
     ];
+
+    // the test data is generated, a shop would load only the requested ids from its database
+    public function getByIds(array $ids): iterable
+    {
+        return array_filter($this->generateProducts(20), static fn ($document) => in_array($document->getIdentifier(), $ids, true));
+    }
 
     public function getBatches(int $batchSize): Generator
     {

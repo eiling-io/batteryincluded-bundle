@@ -1,0 +1,189 @@
+# BatteryIncluded Symfony Bundle – integration guide for AI agents
+
+> Everything needed to add BatteryIncluded search to a Symfony shop with `batteryincluded/batteryincluded-bundle`.
+> Follow the steps in order. Human-readable docs: https://eiling-io.github.io/batteryincluded-bundle/
+> The bundle wraps the PHP SDK, its guide covers DTOs, translations and availability in depth:
+> https://eiling-io.github.io/batteryincluded-php-sdk/llms-full.txt
+
+## 0. Ask the user for
+
+1. The collection name, always prefixed with `customer.` (e.g. `customer.my-shop`).
+2. The API key of that collection. Store it in `.env.local`, a Symfony secret or the server environment, never in a
+   committed file or the browser.
+3. The entities to export (products, blog posts, …) and the languages and countries of the shop.
+4. Whether the collection may be fully replaced: `bi:export` deletes all documents that are not exported.
+
+## 1. Install and enable
+
+```bash
+composer require batteryincluded/batteryincluded-bundle
+```
+
+```php
+// config/bundles.php
+Batteryincluded\BatteryincludedBundle\BatteryincludedBundle::class => ['all' => true],
+```
+
+```dotenv
+# .env.local
+BATTERYINCLUDED_COLLECTION=customer.my-shop
+BATTERYINCLUDED_API_KEY=...
+```
+
+Verify: `bin/console bi:status` exits with 0 and shows the number of documents.
+
+## 2. Data providers
+
+One service per document kind implementing `Batteryincluded\BatteryincludedBundle\Provider\PartialDataProviderInterface`
+(extends `DataProviderInterface`, tagged automatically):
+
+```php
+use Batteryincluded\BatteryincludedBundle\Provider\PartialDataProviderInterface;
+use BatteryIncludedSdk\Dto\ProductBaseDto;
+
+final class ProductProvider implements PartialDataProviderInterface
+{
+    public function __construct(private ProductRepository $products)
+    {
+    }
+
+    // full export, page by page
+    public function getBatches(int $batchSize): \Generator
+    {
+        foreach ($this->products->iterateActive($batchSize) as $products) {
+            yield array_map($this->toDto(...), $products);
+        }
+    }
+
+    // single documents, $ids are document ids like PRODUCT-5, ignore other types, skip inactive products
+    public function getByIds(array $ids): iterable
+    {
+        $productIds = array_map(static fn (string $id) => (int) substr($id, 8), array_filter($ids, static fn (string $id) => str_starts_with($id, 'PRODUCT-')));
+
+        return array_map($this->toDto(...), $this->products->findActiveByIds($productIds));
+    }
+
+    private function toDto(Product $product): ProductBaseDto
+    {
+        $dto = new ProductBaseDto((string) $product->getId());   // document id PRODUCT-<id>
+        $dto->setId((string) $product->getId());
+        $dto->setName($product->getName());
+        $dto->setPrice($product->getPrice());
+        // translations, availability per country, categories, properties: see the SDK guide
+
+        return $dto;
+    }
+}
+```
+
+Rules: deliver only documents that should be searchable; the document id is `<TYPE>-<identifier>`; never load the
+whole catalog into memory.
+
+## 3. First export
+
+```bash
+bin/console bi:export --dry-run   # serializes everything, reports duplicate ids, sends nothing
+bin/console bi:export --force     # full import, deletes all documents that are not exported
+```
+
+The export stops before the commit on API errors, rejected documents or zero documents, the collection is then
+unchanged. Use `--provider=ProductProvider` to create/replace one provider's documents without deleting anything.
+
+## 4. Keep the collection up to date
+
+Doctrine (DoctrineBundle installed): mark the entities, the bundle syncs after each successful flush and sends all
+changes at the end of the request.
+
+```php
+use Batteryincluded\BatteryincludedBundle\Doctrine\Attribute\BatteryIncludedDocument;
+
+#[ORM\Entity]
+#[BatteryIncludedDocument('PRODUCT', deleteMissing: true)]   // deleteMissing: getByIds() not returning it deletes it
+class Product {}
+
+#[ORM\Entity]
+#[BatteryIncludedDocument('PRODUCT', identifier: 'getProductId', deleteOnRemove: false)]
+class Variant {}
+```
+
+With symfony/messenger the changes are dispatched as `SyncDocumentsMessage` / `DeleteDocumentsMessage`, route both to
+an async transport:
+
+```yaml
+framework:
+    messenger:
+        routing:
+            'Batteryincluded\BatteryincludedBundle\Messenger\SyncDocumentsMessage': async
+            'Batteryincluded\BatteryincludedBundle\Messenger\DeleteDocumentsMessage': async
+```
+
+Without Doctrine call `Batteryincluded\BatteryincludedBundle\Sync\DocumentChangeQueue::scheduleSync('PRODUCT-5')` /
+`scheduleDelete()` (sent at the end of the request) or `DocumentSynchronizer::syncByIds()` (sent now).
+
+## 5. Search page
+
+```php
+use Batteryincluded\BatteryincludedBundle\Http\Attribute\MapSearchStruct;
+use BatteryIncludedSdk\Shop\BrowseSearchStruct;
+use BatteryIncludedSdk\Shop\BrowseService;
+
+#[Route('/search')]
+public function search(
+    #[MapSearchStruct(perPage: 24, sortings: ['', '_PRODUCT.price:asc', '_PRODUCT.price:desc'])] BrowseSearchStruct $searchStruct,
+    BrowseService $browseService,
+): Response {
+    return $this->render('search.html.twig', ['searchStruct' => $searchStruct, 'result' => $browseService->browse($searchStruct)]);
+}
+```
+
+Query parameters: `q`, `f[field][]=value`, `f[field][from]=1&f[field][till]=9`, `sort`, `page`, `per_page`. The
+locale is the request locale. `result.hits[].document._PRODUCT` holds the resolved fields, `result.getFacets()` the
+facets, `result.found` the number of hits. For search-as-you-type use a `SuggestSearchStruct` argument with
+`SuggestService::suggestWithFilter()`.
+
+Prices per country: configure the availability scope, it is stored in the request attribute `_batteryincluded_availability`:
+
+```yaml
+batteryincluded:
+    availability:
+        hosts: { 'shop.ch': ch }
+        locales: { de_CH: ch, de_AT: at, de: de }
+```
+
+## 6. Production settings
+
+```yaml
+batteryincluded:
+    http_client: batteryincluded.http_client   # timeouts and retries
+    cache:
+        enabled: true                          # presets, highlights, recommendations
+framework:
+    http_client:
+        scoped_clients:
+            batteryincluded.http_client:
+                scope: 'https://api\.batteryincluded\.io/'
+                timeout: 10
+                retry_failed: { max_retries: 2 }
+```
+
+Failed and slow calls are logged to the `batteryincluded` channel. Schedule `bin/console bi:export --force` (e.g.
+nightly) as safety net next to the incremental sync.
+
+## 7. Hooks
+
+- `PreExportEvent`: `cancel($reason)` stops `bi:export`.
+- `DocumentsEvent`: every batch of export and sync, `getDocuments()` / `setDocuments()` to enrich or filter; removed
+  documents are deleted by a full import.
+- `PostExportEvent`: `successful`, `documents`, `duration`, `result`, `error` after the export.
+
+## 8. Verification checklist
+
+1. `bin/console bi:status` exits with 0.
+2. `bin/console bi:export --dry-run` serializes the expected number of documents without duplicate warnings.
+3. `bin/console bi:export --force` succeeds, `bi:status` shows the same number of documents.
+4. `bin/console bi:search <term> --facets` returns hits with translated names and the expected facets.
+5. Change an entity, reload: the BatteryIncluded profiler panel or the log shows the import call; `bi:search` shows
+   the change.
+6. The search page shows hits, filters, sorting and pagination; the profiler panel shows one browse call without
+   errors.
+7. No API key in committed files, templates or JavaScript.

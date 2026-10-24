@@ -1,3 +1,4 @@
+# the http client chain and the api clients of the collections are registered in BatteryincludedBundle::loadExtension()
 parameters:
     vendor_dir: '%kernel.project_dir%/vendor'
 
@@ -8,30 +9,24 @@ services:
 
     Batteryincluded\BatteryincludedBundle\:
         resource: '../src'
-        exclude: '../src/Demo'
+        exclude:
+            - '../src/BatteryincludedBundle.php'
+            - '../src/Client'
+            - '../src/Collection'
+            - '../src/Demo'
+            - '../src/Doctrine'
+            - '../src/Event'
+            - '../src/Exception'
+            - '../src/Http/Attribute'
+            - '../src/Messenger'
+            - '../src/Sync/SyncResult.php'
 
     BatteryIncludedSdk\:
         resource : '%vendor_dir%/batteryincluded/batteryincluded-php-sdk/src'
         # functions only, loaded by the composer autoloader
         exclude: '%vendor_dir%/batteryincluded/batteryincluded-php-sdk/src/Polyfill'
 
-    BatteryIncludedSdk\Client\ApiClient:
-        class: BatteryIncludedSdk\Client\ApiClient
-        arguments:
-            $httpClient: '@Batteryincluded\BatteryincludedBundle\Client\TraceableHttpClient'
-            $baseUrl: '%env(resolve:BATTERYINCLUDED_BASE_URL)%'
-            $collection: '%env(resolve:BATTERYINCLUDED_COLLECTION)%'
-            $apiKey: '%env(resolve:BATTERYINCLUDED_API_KEY)%'
-
-    Batteryincluded\BatteryincludedBundle\Client\TraceableHttpClient:
-        arguments:
-            $httpClient: '@BatteryIncludedSdk\Client\CurlHttpClient'
-
     Batteryincluded\BatteryincludedBundle\Profiler\ApiDataCollector:
-        arguments:
-            $baseUrl: '%env(resolve:BATTERYINCLUDED_BASE_URL)%'
-            $collection: '%env(resolve:BATTERYINCLUDED_COLLECTION)%'
-            $apiKey: '%env(resolve:BATTERYINCLUDED_API_KEY)%'
         tags:
             -
                 name: data_collector
@@ -40,7 +35,11 @@ services:
 
     Batteryincluded\BatteryincludedBundle\Commands\ExportCommand:
         arguments:
-            $syncService: '@BatteryIncludedSdk\Service\SyncService'
-            $provider: !tagged_iterator 'Batteryincluded\BatteryincludedBundle\Provider\DataProviderInterface'
-        tags:
-            - { name: console.command, command: 'bi:export' }
+            $batchSize: '%batteryincluded.export.batch_size%'
+            $lockFactory: '@?lock.factory'
+            $eventDispatcher: '@?event_dispatcher'
+
+    Batteryincluded\BatteryincludedBundle\Sync\DocumentSynchronizer:
+        arguments:
+            $batchSize: '%batteryincluded.export.batch_size%'
+            $eventDispatcher: '@?event_dispatcher'

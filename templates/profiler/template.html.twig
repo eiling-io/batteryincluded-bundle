@@ -66,7 +66,7 @@
             <div class="sf-toolbar-info-piece">
                 <b>{{ call.method }} {{ call.endpoint }}</b>
                 <span class="sf-toolbar-status {{ call.isError ? 'sf-toolbar-status-red' }}">{{ call.statusCode ?? 'failed' }}</span>
-                <span>{{ call.duration|number_format }} ms</span>
+                <span>{{ call.cached ? 'cached' : call.duration|number_format ~ ' ms' }}</span>
             </div>
         {% endfor %}
         <div class="sf-toolbar-info-group">
@@ -130,7 +130,7 @@
                     {% else %}
                         {% set status = 'success' %}
                     {% endif %}
-                    <h4>#{{ loop.index }} {{ call.method }} {{ call.endpoint }}</h4>
+                    <h4>#{{ loop.index }} {{ call.method }} {{ call.endpoint }}{% if collector.collections|length > 1 and call.collection %} <small>({{ call.collection }})</small>{% endif %}</h4>
                     <table class="sf-profiler-batteryincluded">
                         <thead>
                         <tr>
@@ -145,6 +145,7 @@
                             <td colspan="2">
                                 <span class="status-code status-{{ status }}">{{ call.statusCode ?? 'failed' }}</span>
                                 {{ call.duration|number_format(1) }} ms
+                                {% if call.cached %}· <strong>served from cache</strong>{% endif %}
                                 · request {{ call.requestSize }} bytes
                                 · response {{ call.responseSize }} bytes
                                 {% if call.error %}
@@ -203,18 +204,20 @@
                     </tr>
                     </thead>
                     <tbody>
-                    <tr>
-                        <th>Base URL <small>(BATTERYINCLUDED_BASE_URL)</small></th>
-                        <td>{% if collector.config.baseUrl %}{{ collector.config.baseUrl }}{% else %}<em>not configured</em>{% endif %}</td>
-                    </tr>
-                    <tr>
-                        <th>Collection <small>(BATTERYINCLUDED_COLLECTION)</small></th>
-                        <td>{% if collector.config.collection %}{{ collector.config.collection }}{% else %}<em>not configured</em>{% endif %}</td>
-                    </tr>
-                    <tr>
-                        <th>API key <small>(BATTERYINCLUDED_API_KEY)</small></th>
-                        <td>{% if collector.config.apiKey %}{{ collector.config.apiKey }}{% else %}<em>not configured</em>{% endif %}</td>
-                    </tr>
+                    {% for name, config in collector.collections %}
+                        <tr>
+                            <th>{{ name == 'default' ? 'Base URL <small>(BATTERYINCLUDED_BASE_URL)</small>'|raw : name ~ ': base URL' }}</th>
+                            <td>{% if config.baseUrl %}{{ config.baseUrl }}{% else %}<em>not configured</em>{% endif %}</td>
+                        </tr>
+                        <tr>
+                            <th>{{ name == 'default' ? 'Collection <small>(BATTERYINCLUDED_COLLECTION)</small>'|raw : name ~ ': collection' }}</th>
+                            <td>{% if config.collection %}{{ config.collection }}{% else %}<em>not configured</em>{% endif %}</td>
+                        </tr>
+                        <tr>
+                            <th>{{ name == 'default' ? 'API key <small>(BATTERYINCLUDED_API_KEY)</small>'|raw : name ~ ': API key' }}</th>
+                            <td>{% if config.apiKey %}{{ config.apiKey }}{% else %}<em>not configured</em>{% endif %}</td>
+                        </tr>
+                    {% endfor %}
                     <tr>
                         <th>batteryincluded/batteryincluded-php-sdk</th>
                         <td>{{ collector.versions.sdk ?? 'n/a' }}</td>

@@ -1,0 +1,26 @@
+# BatteryIncluded Symfony Bundle
+
+> Symfony integration of the BatteryIncluded PHP SDK: configuration from the environment, catalog export, sync of
+> single documents (Doctrine, Messenger), search struct controller arguments and the web profiler. PHP 8.2+, Symfony 7/8.
+
+Install with `composer require batteryincluded/batteryincluded-bundle`. For a complete integration guide in one file
+read [llms-full.txt](https://eiling-io.github.io/batteryincluded-bundle/llms-full.txt).
+
+## Docs
+
+- [Getting started](https://raw.githubusercontent.com/eiling-io/batteryincluded-bundle/main/docs/getting-started.md): installation, credentials, first search
+- [Configuration](https://raw.githubusercontent.com/eiling-io/batteryincluded-bundle/main/docs/configuration.md): all options, several collections, Symfony http client, cache, logging
+- [Export](https://raw.githubusercontent.com/eiling-io/batteryincluded-bundle/main/docs/export.md): data providers, bi:export, full import and its safety nets
+- [Single documents](https://raw.githubusercontent.com/eiling-io/batteryincluded-bundle/main/docs/single-documents.md): bi:sync, bi:delete, DocumentSynchronizer, DocumentChangeQueue, Messenger
+- [Doctrine](https://raw.githubusercontent.com/eiling-io/batteryincluded-bundle/main/docs/doctrine.md): #[BatteryIncludedDocument], sync of entities after flush
+- [Events & extension points](https://raw.githubusercontent.com/eiling-io/batteryincluded-bundle/main/docs/events.md): PreExportEvent, DocumentsEvent, PostExportEvent, interfaces, attributes, services
+- [Search in controllers](https://raw.githubusercontent.com/eiling-io/batteryincluded-bundle/main/docs/search.md): BrowseSearchStruct arguments, #[MapSearchStruct], availability
+- [Console commands](https://raw.githubusercontent.com/eiling-io/batteryincluded-bundle/main/docs/console.md): bi:status, bi:search, bi:export, bi:sync, bi:delete
+
+## Optional
+
+- [Profiler & logging](https://raw.githubusercontent.com/eiling-io/batteryincluded-bundle/main/docs/profiler.md): web profiler panel, log channel
+- [Demo shop](https://raw.githubusercontent.com/eiling-io/batteryincluded-bundle/main/docs/demo-shop.md): storefront inside the bundle
+- [Test application](https://raw.githubusercontent.com/eiling-io/batteryincluded-bundle/main/docs/test-application.md): Symfony app used to develop the bundle
+- [Development](https://raw.githubusercontent.com/eiling-io/batteryincluded-bundle/main/docs/development.md): tests, code style, static analysis
+- [PHP SDK documentation](https://eiling-io.github.io/batteryincluded-php-sdk/llms.txt): DTOs, translations, availability, search API
