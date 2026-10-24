@@ -1,0 +1,309 @@
+{% extends '@Batteryincluded/demo/layout.html.twig' %}
+
+{% block body %}
+<main class="container-xxl py-4">
+    {% if error is not null %}
+        <div class="alert alert-danger d-flex gap-2" role="alert">
+            <i class="bi bi-exclamation-octagon" aria-hidden="true"></i>
+            <div><strong>{{ demo.t('error') }}</strong><br><code>{{ error }}</code></div>
+        </div>
+    {% endif %}
+
+    <div class="row g-4">
+        <aside class="col-lg-3">
+            <div class="offcanvas-lg offcanvas-start" tabindex="-1" id="filters" aria-labelledby="filters-title">
+                <div class="offcanvas-header border-bottom">
+                    <h2 class="offcanvas-title h5" id="filters-title">{{ demo.t('filters') }}</h2>
+                    <button type="button" class="btn-close" data-bs-dismiss="offcanvas" data-bs-target="#filters" aria-label="Close"></button>
+                </div>
+                <div class="offcanvas-body d-block">
+                    <form id="filter-form" action="{{ demo.indexUrl }}" method="get" data-auto-submit>
+                        <input type="hidden" name="q" value="{{ query }}">
+                        <input type="hidden" name="lang" value="{{ demo.lang }}">
+                        <input type="hidden" name="country" value="{{ demo.country }}">
+                        {% for field, values in filters %}
+                            {# filters without visible facet (e.g. categories) are kept as hidden fields #}
+                            {% if facets[field] is not defined or facets[field].kind == 'category' %}
+                                {% for key, value in values %}
+                                    <input type="hidden" name="f[{{ field }}][{{ key in ['from', 'till'] ? key }}]" value="{{ value }}">
+                                {% endfor %}
+                            {% endif %}
+                        {% endfor %}
+
+                        {% for field, facetData in facets %}
+                            {% set facet = facetData.facet %}
+                            {% set label = facetData.label %}
+                            {% set id = facetData.id %}
+                            <details class="facet" open>
+                                <summary class="facet-title">{{ label }}</summary>
+                                <div class="facet-body">
+                                    {% if facetData.kind == 'category' %}
+                                        {% if filters[field] is defined %}
+                                            <a class="category-link category-reset" href="{{ demo.urlWithoutFilter(field) }}">
+                                                <span><i class="bi bi-chevron-left" aria-hidden="true"></i> {{ demo.t('all_categories') }}</span>
+                                            </a>
+                                        {% endif %}
+                                        {{ demo.categoryTree(facet.categories, field)|raw }}
+
+                                    {% elseif facetData.kind == 'range' %}
+                                        {% set applied = filters[field] ?? null %}
+                                        {% set min = facet.min|round(0, 'floor') %}
+                                        {% set max = facet.max|round(0, 'ceil') %}
+                                        <div class="d-flex align-items-center gap-2">
+                                            <input class="form-control form-control-sm" type="number" step="any" inputmode="decimal"
+                                                   name="f[{{ field }}][from]" aria-label="{{ label ~ ' ' ~ demo.t('from') }}"
+                                                   min="{{ min }}" max="{{ max }}" placeholder="{{ min }}" value="{{ applied is not null ? facet.selectedMin }}">
+                                            <span class="text-body-secondary">–</span>
+                                            <input class="form-control form-control-sm" type="number" step="any" inputmode="decimal"
+                                                   name="f[{{ field }}][till]" aria-label="{{ label ~ ' ' ~ demo.t('till') }}"
+                                                   min="{{ min }}" max="{{ max }}" placeholder="{{ max }}" value="{{ applied is not null ? facet.selectedMax }}">
+                                            {% if facet.fieldUnit != '' %}
+                                                <span class="text-body-secondary">{{ facet.fieldUnit }}</span>
+                                            {% endif %}
+                                        </div>
+                                        <button class="btn btn-sm btn-outline-primary w-100 mt-2" type="submit">{{ demo.t('apply') }}</button>
+
+                                    {% elseif facetData.kind in ['rating', 'select'] %}
+                                        {% set limit = 6 %}
+                                        {% for index, value in facetData.values %}
+                                            {% set valueId = id ~ '-' ~ index %}
+                                            {% if index == limit %}
+                                                <div class="collapse" id="{{ id }}-more">
+                                            {% endif %}
+                                            <div class="form-check facet-option">
+                                                <input class="form-check-input" type="checkbox" id="{{ valueId }}"
+                                                       name="f[{{ field }}][]" value="{{ value.name }}"{{ value.checked ? ' checked' }}>
+                                                <label class="form-check-label" for="{{ valueId }}">
+                                                    {% if facetData.kind == 'rating' %}
+                                                        {{ demo.stars(value.name)|raw }}
+                                                    {% else %}
+                                                        {{ (demo.facetValueLabel(field, value.name) ~ ' ' ~ facet.fieldUnit)|trim }}
+                                                    {% endif %}
+                                                </label>
+                                                <span class="facet-count">{{ value.count }}</span>
+                                            </div>
+                                        {% endfor %}
+                                        {% if facetData.values|length > limit %}
+                                            </div>
+                                            <button class="btn btn-link btn-sm px-0 facet-more collapsed" type="button" data-bs-toggle="collapse"
+                                                    data-bs-target="#{{ id }}-more" aria-expanded="false" aria-controls="{{ id }}-more">
+                                                <span class="when-collapsed">{{ demo.t('show_more') }} ({{ facetData.values|length - limit }})</span>
+                                                <span class="when-expanded">{{ demo.t('show_less') }}</span>
+                                            </button>
+                                        {% endif %}
+                                    {% endif %}
+                                </div>
+                            </details>
+                        {% endfor %}
+                    </form>
+                </div>
+            </div>
+        </aside>
+
+        <section class="col-lg-9" aria-labelledby="result-title">
+            <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
+                <button class="btn btn-outline-secondary d-lg-none" type="button" data-bs-toggle="offcanvas" data-bs-target="#filters" aria-controls="filters">
+                    <i class="bi bi-funnel" aria-hidden="true"></i> {{ demo.t('filters') }}
+                    {% if filters is not empty %}<span class="badge text-bg-primary">{{ filters|length }}</span>{% endif %}
+                </button>
+                <h1 class="h5 mb-0 me-auto" id="result-title">
+                    {{ query != '' ? demo.t('results_for', demo.formatNumber(found), query) : demo.t('results', demo.formatNumber(found)) }}
+                    {% if result is not null %}<small class="text-body-secondary fw-normal fs-6">{{ demo.t('search_time', searchTime) }}</small>{% endif %}
+                </h1>
+                <div class="d-flex gap-2">
+                    <label class="visually-hidden" for="sort">{{ demo.t('sort') }}</label>
+                    <select class="form-select form-select-sm w-auto" id="sort" name="sort" form="filter-form">
+                        {% for value, key in demo.sortings %}
+                            <option value="{{ value }}"{{ value == sort ? ' selected' }}>{{ demo.t('sort') }}: {{ demo.t(key) }}</option>
+                        {% endfor %}
+                    </select>
+                    <label class="visually-hidden" for="per-page">{{ demo.t('per_page') }}</label>
+                    <select class="form-select form-select-sm w-auto" id="per-page" name="per_page" form="filter-form">
+                        {% for value in demo.perPageOptions %}
+                            <option value="{{ value }}"{{ value == perPage ? ' selected' }}>{{ value }} {{ demo.t('per_page') }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            {% if filters is not empty %}
+                <div class="d-flex flex-wrap gap-2 mb-3" aria-label="{{ demo.t('filters') }}">
+                    {% for field, values in filters %}
+                        {% set label = facetLabels[field] ?? field %}
+                        {% if values.from is defined or values.till is defined %}
+                            <a class="filter-chip" href="{{ demo.urlWithoutFilter(field) }}" title="{{ demo.t('remove_filter') }}">
+                                <span class="text-body-secondary">{{ label }}:</span>
+                                {{ demo.formatNumber(values.from) }} – {{ values.till >= constant('PHP_INT_MAX') ? '∞' : demo.formatNumber(values.till) }}
+                                <i class="bi bi-x-lg" aria-hidden="true"></i>
+                            </a>
+                        {% else %}
+                            {% for value in values %}
+                                <a class="filter-chip" href="{{ demo.urlWithoutFilter(field, value) }}" title="{{ demo.t('remove_filter') }}">
+                                    <span class="text-body-secondary">{{ label }}:</span> {{ demo.facetValueLabel(field, value) }}
+                                    <i class="bi bi-x-lg" aria-hidden="true"></i>
+                                </a>
+                            {% endfor %}
+                        {% endif %}
+                    {% endfor %}
+                    <a class="btn btn-link btn-sm" href="{{ demo.url({f: null, page: null}) }}">{{ demo.t('reset_filters') }}</a>
+                </div>
+            {% endif %}
+
+            {% for redirect in result ? result.redirectsExtensions : [] %}
+                <div class="alert alert-warning d-flex align-items-center gap-2">
+                    <i class="bi bi-signpost-split" aria-hidden="true"></i>
+                    <div>{{ demo.t('redirect_notice') }} <a class="alert-link" href="{{ redirect.data.url ?? '#' }}">{{ redirect.data.name ?? redirect.data.url ?? '' }}</a></div>
+                </div>
+            {% endfor %}
+            {% for code in result ? result.codesExtensions : [] %}
+                <div class="alert alert-info d-flex align-items-center gap-2">
+                    <i class="bi bi-ticket-perforated" aria-hidden="true"></i>
+                    <div>{{ demo.t('code_notice') }} <strong>{{ code.data.name ?? '' }}</strong></div>
+                </div>
+            {% endfor %}
+            {% for promotion in result ? result.promotionsExtensions : [] %}
+                {% set data = promotion.data %}
+                <a class="promotion d-block mb-3" href="{{ data.url ?? '#' }}">
+                    <picture>
+                        <source media="(max-width: 575px)" srcset="{{ data.image.mobile ?? '' }}">
+                        <img src="{{ data.image.desktop ?? '' }}" alt="{{ data.image.alt ?? '' }}" loading="lazy">
+                    </picture>
+                    <span class="promotion-title">{{ data.name ?? '' }}</span>
+                </a>
+            {% endfor %}
+
+            {% if items is empty and error is null %}
+                <div class="text-center py-5 text-body-secondary">
+                    <i class="bi bi-search display-4" aria-hidden="true"></i>
+                    <h2 class="h5 mt-3">{{ demo.t('no_results') }}</h2>
+                    <p>{{ demo.t('no_results_hint') }}</p>
+                </div>
+            {% endif %}
+
+            <div class="row row-cols-1 row-cols-sm-2 row-cols-xl-3 row-cols-xxl-4 g-3">
+                {% for item in items %}
+                    {% set data = item.data %}
+                    <div class="col">
+                        {% if item.type == 'teaser' %}
+                            <a class="card h-100 teaser text-decoration-none overflow-hidden" href="{{ data.url ?? '#' }}">
+                                <picture>
+                                    <source media="(max-width: 575px)" srcset="{{ data.image.mobile ?? '' }}">
+                                    <img class="card-img h-100 object-fit-cover" src="{{ data.image.desktop ?? '' }}" alt="{{ data.image.alt ?? '' }}" loading="lazy">
+                                </picture>
+                                <div class="card-img-overlay d-flex align-items-end">
+                                    <span class="badge text-bg-dark fs-6">{{ data.name ?? '' }}</span>
+                                </div>
+                            </a>
+                        {% elseif item.type == 'blog' %}
+                            <article class="card h-100 product">
+                                {% if (data.previewImage ?? '') is not empty %}
+                                    <div class="product-image">
+                                        <img src="{{ data.previewImage }}" alt="{{ data.title ?? '' }}" loading="lazy">
+                                    </div>
+                                {% endif %}
+                                <div class="card-body d-flex flex-column">
+                                    <div class="small text-uppercase text-body-secondary fw-semibold">
+                                        <i class="bi bi-journal-text" aria-hidden="true"></i> {{ demo.t('blog') }}
+                                    </div>
+                                    <h2 class="h6 card-title mb-1">
+                                        <a class="stretched-link text-reset text-decoration-none" href="{{ demo.detailUrl(item.id) }}">{{ data.title ?? '' }}</a>
+                                    </h2>
+                                    <p class="card-text small text-body-secondary line-clamp">{{ data.shortDescription ?? data.description ?? '' }}</p>
+                                    <div class="mt-auto small text-body-secondary">
+                                        {{ [data.author ?? null, data.publishedAt is defined ? demo.formatDate(data.publishedAt) : null]|filter(v => v)|join(' · ') }}
+                                    </div>
+                                </div>
+                            </article>
+                        {% else %}
+                            {% set stock = demo.stockStatus(data) %}
+                            {% set isSold = data.active ?? true %}
+                            <article class="card h-100 product{{ isSold is same as(false) ? ' product-inactive' }}">
+                                <div class="product-image">
+                                    <img src="{{ data.imageUrl ?? '' }}" alt="{{ data.name ?? '' }}" loading="lazy">
+                                </div>
+                                <div class="card-body d-flex flex-column">
+                                    {% if (data.manufacture ?? '') is not empty %}
+                                        <div class="small text-uppercase text-body-secondary fw-semibold">{{ data.manufacture }}</div>
+                                    {% endif %}
+                                    <h2 class="h6 card-title mb-1">
+                                        <a class="stretched-link text-reset text-decoration-none" href="{{ demo.detailUrl(item.id) }}">{{ data.name ?? '' }}</a>
+                                    </h2>
+                                    {% if data.rating is defined and data.rating is not null %}
+                                        <div class="small mb-2">{{ demo.stars(data.rating)|raw }} <span class="text-body-secondary">{{ demo.formatNumber(data.rating) }}</span></div>
+                                    {% endif %}
+                                    <p class="card-text small text-body-secondary line-clamp">{{ data.description ?? '' }}</p>
+                                    <div class="mt-auto d-flex align-items-end justify-content-between gap-2">
+                                        <div>
+                                            <div class="fs-5 fw-semibold">{{ data.price is defined and data.price is not null ? demo.formatPrice(data.price) }}</div>
+                                            <div class="small {{ stock.class }}">
+                                                <i class="bi {{ stock.icon }}" aria-hidden="true"></i>
+                                                {{ stock.label }}
+                                            </div>
+                                        </div>
+                                        {% if (data.ordernumber ?? '') is not empty %}
+                                            <div class="small text-body-secondary text-end">{{ demo.t('item_number') }}<br>{{ data.ordernumber }}</div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </article>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+            </div>
+
+            {% if result is not null and result.pages > 1 %}
+                {% set pagination = demo.pagination(page, result.pages) %}
+                <nav class="mt-4" aria-label="{{ demo.t('pagination') }}">
+                    <ul class="pagination justify-content-center flex-wrap">
+                        <li class="page-item{{ page <= 1 ? ' disabled' }}">
+                            <a class="page-link" href="{{ demo.url({page: page - 1}) }}" aria-label="{{ demo.t('page_prev') }}"><i class="bi bi-chevron-left" aria-hidden="true"></i></a>
+                        </li>
+                        {% for number in pagination.pages %}
+                            {% if number is null %}
+                                <li class="page-item disabled"><span class="page-link">…</span></li>
+                            {% else %}
+                                <li class="page-item{{ number == page ? ' active' }}">
+                                    <a class="page-link" href="{{ demo.url({page: number}) }}"{{ number == page ? ' aria-current="page"' }}>{{ number }}</a>
+                                </li>
+                            {% endif %}
+                        {% endfor %}
+                        <li class="page-item{{ page >= pagination.last ? ' disabled' }}">
+                            <a class="page-link" href="{{ demo.url({page: page + 1}) }}" aria-label="{{ demo.t('page_next') }}"><i class="bi bi-chevron-right" aria-hidden="true"></i></a>
+                        </li>
+                    </ul>
+                </nav>
+            {% endif %}
+
+            {% if result is not null %}
+                <details class="api-details mt-5">
+                    <summary class="text-body-secondary"><i class="bi bi-braces" aria-hidden="true"></i> {{ demo.t('api_details') }}</summary>
+                    <div class="row g-3 mt-1">
+                        <div class="col-12">
+                            <h3 class="h6">{{ demo.t('api_request') }}</h3>
+                            <pre><code>{{ demo.json({
+                                query: searchStruct.query,
+                                filters: searchStruct.filters,
+                                sort: searchStruct.sort,
+                                page: searchStruct.page,
+                                perPage: searchStruct.perPage,
+                                locale: searchStruct.locale,
+                                availability: searchStruct.availability,
+                            }) }}</code></pre>
+                        </div>
+                        {% if hits is not empty %}
+                            <div class="col-md-6">
+                                <h3 class="h6">{{ demo.t('raw_hit') }}</h3>
+                                <pre><code>{{ demo.json(result.rawHits[0].document ?? null) }}</code></pre>
+                            </div>
+                            <div class="col-md-6">
+                                <h3 class="h6">{{ demo.t('resolved_hit', result.locale, result.availability ?? '') }}</h3>
+                                <pre><code>{{ demo.json(hits[0].document ?? null) }}</code></pre>
+                            </div>
+                        {% endif %}
+                    </div>
+                </details>
+            {% endif %}
+        </section>
+    </div>
+</main>
+{% endblock %}

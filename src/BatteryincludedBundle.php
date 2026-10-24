@@ -13,5 +13,10 @@ class BatteryincludedBundle extends AbstractBundle
     public function loadExtension(array $config, ContainerConfigurator $container, ContainerBuilder $builder): void
     {
         $container->import(__DIR__ . '/../config/services.yaml');
+
+        // the demo shop renders twig templates
+        if (isset($builder->getParameter('kernel.bundles')['TwigBundle'])) {
+            $container->import(__DIR__ . '/../config/services_demo.yaml');
+        }
     }
 }

@@ -1,0 +1,3 @@
+batteryincluded_demo:
+    resource: '@BatteryincludedBundle/config/routes/demo.yaml'
+    prefix: /

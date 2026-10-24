@@ -10,7 +10,7 @@ class BlogProvider implements DataProviderInterface
 {
     public function getBatches(int $batchSize): Generator
     {
-        $blogs = $this->generateBlogs(100);
+        $blogs = $this->generateBlogs(10);
         $batches = array_chunk($blogs, $batchSize);
 
         foreach ($batches as $skuBatch) {
@@ -28,6 +28,11 @@ class BlogProvider implements DataProviderInterface
             $blog->setAuthor('Author ' . $i);
             $blog->setPreviewImage('https://dummyimage.com/600x400/bbb/fff.png&text=Blog ' . $i);
             $blog->setPublishedAt((new \DateTime())->modify('-' . (30 - $i) . ' days')->format('Y-m-d'));
+            $blog
+                ->addTranslation('de', 'title', 'Blogbeitrag ' . $i)
+                ->addTranslation('de', 'description', 'Das ist der Inhalt von Blogbeitrag Nummer ' . $i . '.')
+                ->addTranslation('en', 'title', 'Blog Post ' . $i)
+                ->addTranslation('en', 'description', 'This is the content of blog post number ' . $i . '.');
             $blogs[] = $blog;
         }
 

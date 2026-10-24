@@ -1,3 +1,4 @@
 /vendor/
 /tests/Application/vendor
 /tests/Application/composer.lock
+/.idea/

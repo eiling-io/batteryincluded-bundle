@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Batteryincluded\BatteryincludedBundle\Commands;
 
 use BatteryIncludedSdk\Dto\ProductBaseDto;
+use BatteryIncludedSdk\Service\Response;
 use BatteryIncludedSdk\Service\SyncService;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
@@ -30,13 +31,31 @@ class ExportCommand extends Command
         $batch[] = new ProductBaseDto('1337'); // to avoid "undefined variable" error
         foreach ($this->provider as $provider) {
             foreach ($provider->getBatches(500) as $batch) {
-                $this->syncService->syncFullBatchElements($transactionId, false, ...$batch);
+                $response = $this->syncService->syncFullBatchElements($transactionId, false, ...$batch);
+                if (!$this->isSuccessful($response, $output)) {
+                    return Command::FAILURE;
+                }
             }
             $output->writeln(get_class($provider) . ' export done, committing...');
         }
-        $this->syncService->syncFullBatchElements($transactionId, true, ...$batch);
+        $response = $this->syncService->syncFullBatchElements($transactionId, true, ...$batch);
+        if (!$this->isSuccessful($response, $output)) {
+            return Command::FAILURE;
+        }
         $output->writeln('<info>Export done.</info>');
 
         return Command::SUCCESS;
+    }
+
+    private function isSuccessful(Response $response, OutputInterface $output): bool
+    {
+        $output->writeln('API response: ' . $response->getStatusCode() . ' ' . $response->getRawResponse(), OutputInterface::VERBOSITY_VERBOSE);
+        if ($response->getStatusCode() < 400) {
+            return true;
+        }
+
+        $output->writeln('<error>Export failed with status ' . $response->getStatusCode() . ': ' . $response->getRawResponse() . '</error>');
+
+        return false;
     }
 }

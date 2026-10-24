@@ -1,0 +1,22 @@
+# demo shop of the sdk, import it in your application, e.g. in config/routes/batteryincluded.yaml:
+#
+# batteryincluded_demo:
+#     resource: '@BatteryincludedBundle/config/routes/demo.yaml'
+#     prefix: /batteryincluded-demo
+
+batteryincluded_demo_index:
+    path: /
+    controller: Batteryincluded\BatteryincludedBundle\Demo\Controller\DemoController::index
+    methods: [GET]
+
+batteryincluded_demo_detail:
+    path: /detail/{id}
+    controller: Batteryincluded\BatteryincludedBundle\Demo\Controller\DemoController::detail
+    methods: [GET]
+    requirements:
+        id: .+
+
+batteryincluded_demo_suggest:
+    path: /api/suggest
+    controller: Batteryincluded\BatteryincludedBundle\Demo\Controller\DemoController::suggest
+    methods: [GET]

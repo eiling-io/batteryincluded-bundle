@@ -1,0 +1,12 @@
+# demo shop, registered as soon as the TwigBundle is enabled, the routes are imported by the application
+services:
+    _defaults:
+        autowire: true
+        autoconfigure: true
+
+    Batteryincluded\BatteryincludedBundle\Demo\:
+        resource: '../src/Demo'
+
+    Batteryincluded\BatteryincludedBundle\Demo\Controller\DemoController:
+        public: true
+        tags: ['controller.service_arguments']

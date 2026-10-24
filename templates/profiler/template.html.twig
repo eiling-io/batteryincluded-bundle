@@ -1,41 +1,231 @@
-{# templates/data_collector/template.html.twig #}
 {% extends '@WebProfiler/Profiler/layout.html.twig' %}
 
-{% block menu %}
-    <span class="label">
-        <span class="icon">
+{% block head %}
+    {{ parent() }}
+
+    <style>
+        .sf-profiler-batteryincluded thead th {
+            vertical-align: top;
+        }
+        .sf-profiler-batteryincluded .http-method {
+            border: 1px solid var(--header-status-request-method-color);
+            border-radius: 5px;
+            color: var(--header-status-request-method-color);
+            display: inline-block;
+            font-weight: 500;
+            line-height: 1;
+            margin-right: 6px;
+            padding: 2px 4px;
+            white-space: nowrap;
+        }
+        .sf-profiler-batteryincluded .status-code {
+            background: var(--gray-600);
+            border-radius: 4px;
+            color: var(--white);
+            display: inline-block;
+            font-size: 12px;
+            font-weight: bold;
+            padding: 1px 3px;
+        }
+        .sf-profiler-batteryincluded .status-code.status-success { background: var(--header-success-status-code-background); color: var(--header-success-status-code-color); }
+        .sf-profiler-batteryincluded .status-code.status-warning { background: var(--header-warning-status-code-background); color: var(--header-warning-status-code-color); }
+        .sf-profiler-batteryincluded .status-code.status-error { background: var(--header-error-status-code-background); color: var(--header-error-status-code-color); }
+        .sf-profiler-batteryincluded .url { word-break: break-all; }
+    </style>
+{% endblock %}
+
+{% block toolbar %}
+    {% set icon %}
         {{ include('@Batteryincluded/collector/icon.svg') }}
-        </span>
-        <strong>Batteryincluded</strong>
+        <span class="sf-toolbar-value">{{ collector.callCount }}</span>
+        {% if collector.callCount %}
+            <span class="sf-toolbar-info-piece-additional-detail">
+                <span class="sf-toolbar-label">in</span>
+                <span class="sf-toolbar-value">{{ collector.duration|number_format }}</span>
+                <span class="sf-toolbar-label">ms</span>
+            </span>
+        {% endif %}
+    {% endset %}
+
+    {% set text %}
+        <div class="sf-toolbar-info-group">
+            <div class="sf-toolbar-info-piece">
+                <b>API calls</b>
+                <span class="sf-toolbar-status">{{ collector.callCount }}</span>
+            </div>
+            <div class="sf-toolbar-info-piece">
+                <b>API errors</b>
+                <span class="sf-toolbar-status {{ collector.errorCount > 0 ? 'sf-toolbar-status-red' }}">{{ collector.errorCount }}</span>
+            </div>
+            <div class="sf-toolbar-info-piece">
+                <b>Total time</b>
+                <span>{{ collector.duration|number_format }} ms</span>
+            </div>
+        </div>
+        {% for call in collector.calls %}
+            <div class="sf-toolbar-info-piece">
+                <b>{{ call.method }} {{ call.endpoint }}</b>
+                <span class="sf-toolbar-status {{ call.isError ? 'sf-toolbar-status-red' }}">{{ call.statusCode ?? 'failed' }}</span>
+                <span>{{ call.duration|number_format }} ms</span>
+            </div>
+        {% endfor %}
+        <div class="sf-toolbar-info-group">
+            <div class="sf-toolbar-info-piece">
+                <b>Collection</b>
+                <span>{{ collector.config.collection ?: 'not configured' }}</span>
+            </div>
+            <div class="sf-toolbar-info-piece">
+                <b>SDK</b>
+                <span>{{ collector.versions.sdk ?? 'n/a' }}</span>
+            </div>
+        </div>
+    {% endset %}
+
+    {{ include('@WebProfiler/Profiler/toolbar_item.html.twig', {link: profiler_url, status: collector.errorCount ? 'red' : ''}) }}
+{% endblock %}
+
+{% block menu %}
+    <span class="label {{ collector.callCount == 0 ? 'disabled' }} {{ collector.errorCount ? 'label-status-error' }}">
+        <span class="icon">{{ include('@Batteryincluded/collector/icon.svg') }}</span>
+        <strong>BatteryIncluded</strong>
+        {% if collector.callCount %}
+            <span class="count">{{ collector.callCount }}</span>
+        {% endif %}
     </span>
 {% endblock %}
 
-{% macro render_array(array) %}
-    <ul>
-        {% for key, value in array %}
-            <li>
-                <strong>{{ key }}:</strong>
-                {% if value is iterable  %}
-                    {{ _self.render_array(value) }}
-                {% else %}
-                    {{ value }}
-                {% endif %}
-            </li>
-        {% endfor %}
-    </ul>
-{% endmacro %}
-
-{% import _self as macros %}
-
 {% block panel %}
-    <h2>Batteryincluded</h2>
+    <h2>BatteryIncluded</h2>
+
+    <div class="metrics">
+        <div class="metric">
+            <span class="value">{{ collector.callCount }}</span>
+            <span class="label">API calls</span>
+        </div>
+        <div class="metric">
+            <span class="value">{{ collector.errorCount }}</span>
+            <span class="label">API errors</span>
+        </div>
+        <div class="metric">
+            <span class="value">{{ collector.duration|number_format(1) }} <span class="unit">ms</span></span>
+            <span class="label">Total time</span>
+        </div>
+    </div>
+
     <div class="sf-tabs">
+        <div class="tab {{ collector.callCount == 0 ? 'disabled' }}">
+            <h3 class="tab-title">API calls <span class="badge">{{ collector.callCount }}</span></h3>
+            <div class="tab-content">
+                {% if collector.callCount == 0 %}
+                    <div class="empty">
+                        <p>No calls to the BatteryIncluded API were made.</p>
+                    </div>
+                {% endif %}
+
+                {% for call in collector.calls %}
+                    {% if call.statusCode is null or call.statusCode >= 500 %}
+                        {% set status = 'error' %}
+                    {% elseif call.statusCode >= 400 %}
+                        {% set status = 'warning' %}
+                    {% else %}
+                        {% set status = 'success' %}
+                    {% endif %}
+                    <h4>#{{ loop.index }} {{ call.method }} {{ call.endpoint }}</h4>
+                    <table class="sf-profiler-batteryincluded">
+                        <thead>
+                        <tr>
+                            <th><span class="http-method">{{ call.method }}</span></th>
+                            <th class="full-width url">{{ call.url }}</th>
+                            <th><button class="btn btn-sm hidden" title="Copy as cURL, the api key is read from $BATTERYINCLUDED_API_KEY" data-clipboard-text="{{ call.curlCommand }}">Copy as cURL</button></th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr>
+                            <th class="font-normal">Status</th>
+                            <td colspan="2">
+                                <span class="status-code status-{{ status }}">{{ call.statusCode ?? 'failed' }}</span>
+                                {{ call.duration|number_format(1) }} ms
+                                · request {{ call.requestSize }} bytes
+                                · response {{ call.responseSize }} bytes
+                                {% if call.error %}
+                                    <div class="text-danger"><strong>{{ call.error }}</strong></div>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% if call.summary is not empty %}
+                            <tr>
+                                <th class="font-normal">Result</th>
+                                <td colspan="2">
+                                    {% for label, value in call.summary %}
+                                        <strong>{{ label }}:</strong> {{ value }}{{ not loop.last ? ' · ' }}
+                                    {% endfor %}
+                                </td>
+                            </tr>
+                        {% endif %}
+                        {% if call.hasQuery %}
+                            <tr>
+                                <th class="font-normal">Parameters</th>
+                                <td colspan="2">{{ profiler_dump(call.query, maxDepth: 4) }}</td>
+                            </tr>
+                        {% endif %}
+                        <tr>
+                            <th class="font-normal">Headers</th>
+                            <td colspan="2">
+                                {% for header in call.headers %}
+                                    <code>{{ header }}</code>{{ not loop.last ? '<br>' }}
+                                {% endfor %}
+                            </td>
+                        </tr>
+                        {% if call.hasBody %}
+                            <tr>
+                                <th class="font-normal">Request body</th>
+                                <td colspan="2">{{ profiler_dump(call.body, maxDepth: 2) }}</td>
+                            </tr>
+                        {% endif %}
+                        <tr>
+                            <th class="font-normal">Response</th>
+                            <td colspan="2">{{ profiler_dump(call.response, maxDepth: 2) }}</td>
+                        </tr>
+                        </tbody>
+                    </table>
+                {% endfor %}
+            </div>
+        </div>
+
         <div class="tab">
-            <h3 class="tab-title">Requests</h3>
-             <div class="tab-content">
-                {{ macros.render_array(collector.requests) }}
+            <h3 class="tab-title">Configuration</h3>
+            <div class="tab-content">
+                <table>
+                    <thead>
+                    <tr>
+                        <th scope="col" class="key">Setting</th>
+                        <th scope="col">Value</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr>
+                        <th>Base URL <small>(BATTERYINCLUDED_BASE_URL)</small></th>
+                        <td>{% if collector.config.baseUrl %}{{ collector.config.baseUrl }}{% else %}<em>not configured</em>{% endif %}</td>
+                    </tr>
+                    <tr>
+                        <th>Collection <small>(BATTERYINCLUDED_COLLECTION)</small></th>
+                        <td>{% if collector.config.collection %}{{ collector.config.collection }}{% else %}<em>not configured</em>{% endif %}</td>
+                    </tr>
+                    <tr>
+                        <th>API key <small>(BATTERYINCLUDED_API_KEY)</small></th>
+                        <td>{% if collector.config.apiKey %}{{ collector.config.apiKey }}{% else %}<em>not configured</em>{% endif %}</td>
+                    </tr>
+                    <tr>
+                        <th>batteryincluded/batteryincluded-php-sdk</th>
+                        <td>{{ collector.versions.sdk ?? 'n/a' }}</td>
+                    </tr>
+                    <tr>
+                        <th>batteryincluded/batteryincluded-bundle</th>
+                        <td>{{ collector.versions.bundle ?? 'n/a' }}</td>
+                    </tr>
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>
 {% endblock %}
-

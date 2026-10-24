@@ -8,19 +8,30 @@ services:
 
     Batteryincluded\BatteryincludedBundle\:
         resource: '../src'
+        exclude: '../src/Demo'
 
     BatteryIncludedSdk\:
         resource : '%vendor_dir%/batteryincluded/batteryincluded-php-sdk/src'
+        # functions only, loaded by the composer autoloader
+        exclude: '%vendor_dir%/batteryincluded/batteryincluded-php-sdk/src/Polyfill'
 
     BatteryIncludedSdk\Client\ApiClient:
         class: BatteryIncludedSdk\Client\ApiClient
         arguments:
-            $httpClient: '@Batteryincluded\BatteryincludedBundle\Client\CurlHttpClient'
+            $httpClient: '@Batteryincluded\BatteryincludedBundle\Client\TraceableHttpClient'
             $baseUrl: '%env(resolve:BATTERYINCLUDED_BASE_URL)%'
             $collection: '%env(resolve:BATTERYINCLUDED_COLLECTION)%'
             $apiKey: '%env(resolve:BATTERYINCLUDED_API_KEY)%'
 
+    Batteryincluded\BatteryincludedBundle\Client\TraceableHttpClient:
+        arguments:
+            $httpClient: '@BatteryIncludedSdk\Client\CurlHttpClient'
+
     Batteryincluded\BatteryincludedBundle\Profiler\ApiDataCollector:
+        arguments:
+            $baseUrl: '%env(resolve:BATTERYINCLUDED_BASE_URL)%'
+            $collection: '%env(resolve:BATTERYINCLUDED_COLLECTION)%'
+            $apiKey: '%env(resolve:BATTERYINCLUDED_API_KEY)%'
         tags:
             -
                 name: data_collector

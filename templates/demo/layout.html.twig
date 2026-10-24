@@ -1,0 +1,105 @@
+{#
+    Page head and navigation bar, shared by all pages of the demo shop.
+
+    demo          DemoShop, state and helpers
+    query         search term shown in the search field
+    pageTitle     prefix of the document title
+    homeUrl       target of the logo
+    languageUrls  url of the current page per language
+    countryUrls   url of the current page per country
+#}
+{% set lang = demo.lang %}
+{% set country = demo.country %}
+<!doctype html>
+<html lang="{{ lang }}" data-bs-theme="light">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ pageTitle is not empty ? pageTitle ~ ' · ' ~ demo.t('title') : demo.t('title') }}</title>
+    <script>
+        // set the theme before rendering to avoid flickering
+        (() => {
+            let theme = null;
+            try { theme = localStorage.getItem('bi-demo-theme'); } catch (e) {}
+            theme ??= matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+            document.documentElement.dataset.bsTheme = theme;
+        })();
+    </script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet"
+          integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
+    <style>{{ source('@Batteryincluded/demo/assets/app.css') }}</style>
+</head>
+<body>
+
+<header class="navbar navbar-expand sticky-top bg-body border-bottom shadow-sm py-2">
+    <div class="container-xxl gap-3">
+        <a class="navbar-brand d-flex align-items-center gap-2 fw-semibold" href="{{ homeUrl }}">
+            <i class="bi bi-battery-charging fs-4 text-primary" aria-hidden="true"></i>
+            <span class="d-none d-md-inline">BatteryIncluded</span>
+        </a>
+
+        <form class="search flex-grow-1 position-relative" action="{{ demo.indexUrl }}" method="get" role="search" data-suggest-url="{{ demo.suggestUrl }}">
+            <input type="hidden" name="lang" value="{{ lang }}">
+            <input type="hidden" name="country" value="{{ country }}">
+            <div class="input-group">
+                <span class="input-group-text bg-body-tertiary border-end-0"><i class="bi bi-search" aria-hidden="true"></i></span>
+                <input class="form-control border-start-0 bg-body-tertiary" type="search" name="q" value="{{ query }}"
+                       placeholder="{{ demo.t('search_placeholder') }}" aria-label="{{ demo.t('search') }}"
+                       autocomplete="off" role="combobox" aria-expanded="false" aria-controls="suggest-list" aria-autocomplete="list">
+                <button class="btn btn-primary" type="submit">{{ demo.t('search') }}</button>
+            </div>
+            <div class="suggest dropdown-menu w-100 shadow p-0" id="suggest-list" role="listbox"
+                 data-label-suggestions="{{ demo.t('suggestions') }}" data-label-products="{{ demo.t('products') }}"
+                 data-label-all="{{ demo.t('show_all_results', '%s') }}"></div>
+        </form>
+
+        <div class="dropdown">
+            <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="{{ demo.t('language') }}">
+                <span aria-hidden="true">{{ demo.languages[lang].flag }}</span>
+                <span class="d-none d-sm-inline">{{ lang|upper }}</span>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end">
+                {% for code, language in demo.languages %}
+                    <li>
+                        <a class="dropdown-item{{ code == lang ? ' active' }}" href="{{ languageUrls[code] }}" hreflang="{{ code }}" lang="{{ code }}">
+                            <span aria-hidden="true">{{ language.flag }}</span> {{ language.label }}
+                        </a>
+                    </li>
+                {% endfor %}
+            </ul>
+        </div>
+
+        <div class="dropdown">
+            <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="{{ demo.t('country') }}" title="{{ demo.t('country') }}">
+                <span aria-hidden="true">{{ demo.countries[country].flag }}</span>
+                <span class="d-none d-sm-inline">{{ demo.countries[country].currency }}</span>
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end">
+                <li><h2 class="dropdown-header">{{ demo.t('country_hint') }}</h2></li>
+                {% for code, countryConfig in demo.countries %}
+                    <li>
+                        <a class="dropdown-item{{ code == country ? ' active' }}" href="{{ countryUrls[code] }}">
+                            <span aria-hidden="true">{{ countryConfig.flag }}</span> {{ demo.countryLabel(code) }}
+                            <span class="text-body-secondary small">({{ countryConfig.currency }})</span>
+                        </a>
+                    </li>
+                {% endfor %}
+            </ul>
+        </div>
+
+        <button class="btn btn-outline-secondary" type="button" data-theme-toggle title="{{ demo.t('theme_toggle') }}" aria-label="{{ demo.t('theme_toggle') }}">
+            <i class="bi bi-moon-stars theme-icon-light" aria-hidden="true"></i>
+            <i class="bi bi-sun theme-icon-dark" aria-hidden="true"></i>
+        </button>
+    </div>
+</header>
+
+{% block body %}{% endblock %}
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI"
+        crossorigin="anonymous"></script>
+<script>{{ source('@Batteryincluded/demo/assets/app.js') }}</script>
+</body>
+</html>

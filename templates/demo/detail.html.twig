@@ -1,0 +1,186 @@
+{% extends '@Batteryincluded/demo/layout.html.twig' %}
+
+{% block body %}
+<main class="container-xxl py-4">
+    <a class="btn btn-link px-0 mb-3" href="{{ backUrl }}">
+        <i class="bi bi-chevron-left" aria-hidden="true"></i> {{ demo.t('back_to_search') }}
+    </a>
+
+    {% if error is not null %}
+        <div class="alert alert-danger d-flex gap-2" role="alert">
+            <i class="bi bi-exclamation-octagon" aria-hidden="true"></i>
+            <div><strong>{{ demo.t('error') }}</strong><br><code>{{ error }}</code></div>
+        </div>
+    {% elseif document is null %}
+        <div class="text-center py-5 text-body-secondary">
+            <i class="bi bi-question-circle display-4" aria-hidden="true"></i>
+            <h1 class="h5 mt-3">{{ demo.t('not_found') }}</h1>
+            <p>{{ demo.t('not_found_hint', id, demo.lang|upper) }}</p>
+        </div>
+    {% else %}
+        <article class="detail card mb-4">
+            <div class="row g-0">
+                {% set image = data.imageUrl ?? data.previewImage ?? '' %}
+                {% if image != '' %}
+                    <div class="col-md-5 p-4 pe-md-0 d-flex align-items-center">
+                        <div class="detail-image">
+                            <img src="{{ image }}" alt="{{ pageTitle }}">
+                        </div>
+                    </div>
+                {% endif %}
+                <div class="col">
+                    <div class="card-body p-4">
+                        {% if type == 'BLOG' %}
+                            <div class="small text-uppercase text-body-secondary fw-semibold">
+                                <i class="bi bi-journal-text" aria-hidden="true"></i> {{ demo.t('blog') }}
+                            </div>
+                            <h1 class="h3 mt-1">{{ data.title ?? '' }}</h1>
+                            <div class="text-body-secondary mb-3">
+                                {{ [data.author ?? null, data.publishedAt is defined ? demo.formatDate(data.publishedAt) : null]|filter(v => v)|join(' · ') }}
+                            </div>
+                            {% if (data.shortDescription ?? '') is not empty %}
+                                <p class="lead">{{ data.shortDescription }}</p>
+                            {% endif %}
+                            <p>{{ data.description ?? '' }}</p>
+                            {% if (data.blogUrl ?? '') is not empty %}
+                                <a class="btn btn-primary" href="{{ data.blogUrl }}" target="_blank" rel="noopener">
+                                    {{ demo.t('read_article') }} <i class="bi bi-box-arrow-up-right" aria-hidden="true"></i>
+                                </a>
+                            {% endif %}
+                        {% else %}
+                            {% set stock = demo.stockStatus(data) %}
+                            {% if (data.manufacture ?? '') is not empty %}
+                                <div class="small text-uppercase text-body-secondary fw-semibold">{{ data.manufacture }}</div>
+                            {% endif %}
+                            <h1 class="h3 mt-1">{{ data.name ?? '' }}</h1>
+                            {% if data.rating is defined and data.rating is not null %}
+                                <div class="mb-3">{{ demo.stars(data.rating)|raw }} <span class="text-body-secondary">{{ demo.formatNumber(data.rating) }}</span></div>
+                            {% endif %}
+                            <div class="d-flex flex-wrap align-items-end gap-4 mb-3">
+                                <div>
+                                    <div class="fs-3 fw-semibold">{{ data.price is defined and data.price is not null ? demo.formatPrice(data.price) }}</div>
+                                    <div class="{{ stock.class }}">
+                                        <i class="bi {{ stock.icon }}" aria-hidden="true"></i>
+                                        {{ stock.label }}
+                                    </div>
+                                    {% if availabilityFields is not empty %}
+                                        <div class="small text-body-secondary">{{ demo.t('availability_of', demo.countryLabel(demo.country)) }}</div>
+                                    {% endif %}
+                                </div>
+                                {% if (data.shopUrl ?? '') is not empty %}
+                                    <a class="btn btn-primary" href="{{ data.shopUrl }}" target="_blank" rel="noopener">
+                                        {{ demo.t('to_product') }} <i class="bi bi-box-arrow-up-right" aria-hidden="true"></i>
+                                    </a>
+                                {% endif %}
+                            </div>
+                            <p>{{ data.description ?? '' }}</p>
+                            <dl class="row small mb-3">
+                                {% for field, label in {ordernumber: 'item_number', manufactureNumber: 'manufacture_number', ean: 'ean'} %}
+                                    {% if (data[field] ?? '') is not empty %}
+                                        <dt class="col-sm-4 text-body-secondary fw-normal">{{ demo.t(label) }}</dt>
+                                        <dd class="col-sm-8 mb-1">{{ data[field] }}</dd>
+                                    {% endif %}
+                                {% endfor %}
+                            </dl>
+                            {% if (data.categories ?? []) is not empty %}
+                                <div class="d-flex flex-wrap gap-2 mb-3">
+                                    {% for category in data.categories %}
+                                        <a class="badge rounded-pill text-bg-light border text-decoration-none fw-normal"
+                                           href="{{ demo.url({f: {(categoryField): [category]}}) }}">{{ category }}</a>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                            {% if properties is not empty %}
+                                <h2 class="h6 mt-4">{{ demo.t('properties') }}</h2>
+                                <table class="table table-sm small mb-0">
+                                    <tbody>
+                                    {% for name, values in properties %}
+                                        <tr>
+                                            <th class="text-body-secondary fw-normal w-50" scope="row">{{ propertyLabels[name] }}</th>
+                                            <td>{{ values is iterable ? values|join(', ') : values }}</td>
+                                        </tr>
+                                    {% endfor %}
+                                    </tbody>
+                                </table>
+                            {% endif %}
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </article>
+
+        <section class="card mb-4">
+            <div class="card-body">
+                <h2 class="h5">{{ demo.t('all_data') }}</h2>
+                <p class="small text-body-secondary">{{ demo.t('all_data_hint', demo.lang|upper, demo.countryLabel(demo.country)) }}</p>
+                <div class="table-responsive">
+                    <table class="table table-sm small align-middle mb-0">
+                        <thead>
+                        <tr>
+                            <th scope="col">{{ demo.t('field') }}</th>
+                            <th scope="col">{{ demo.t('value') }}</th>
+                            <th scope="col">{{ demo.t('source') }}</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        {% for field, value in {id: document.id ?? null, type: type} %}
+                            <tr>
+                                <td><code>{{ field }}</code></td>
+                                <td>{{ value }}</td>
+                                <td></td>
+                            </tr>
+                        {% endfor %}
+                        {% for field, entry in fields %}
+                            <tr>
+                                <td><code>{{ field }}</code></td>
+                                <td class="text-break">{{ entry.value }}</td>
+                                <td>
+                                    {% if entry.source == 'availability' %}
+                                        <span class="badge text-bg-success">{{ demo.t('source_availability', demo.country|upper) }}</span>
+                                    {% elseif entry.source == 'translation' %}
+                                        <span class="badge text-bg-primary">{{ demo.t('source_translation', demo.lang|upper) }}</span>
+                                    {% else %}
+                                        <span class="badge text-bg-secondary">{{ demo.t('source_default') }}</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+    {% endif %}
+
+    {% if result is not null %}
+        <details class="api-details" open>
+            <summary class="text-body-secondary"><i class="bi bi-braces" aria-hidden="true"></i> {{ demo.t('api_details') }}</summary>
+            <div class="row g-3 mt-1">
+                <div class="col-md-6">
+                    <h3 class="h6">{{ demo.t('api_request') }}</h3>
+                    <pre><code>{{ demo.json({
+                        filters: searchStruct.filters,
+                        perPage: searchStruct.perPage,
+                        locale: searchStruct.locale,
+                        availability: searchStruct.availability,
+                    }) }}</code></pre>
+                </div>
+                <div class="col-md-6">
+                    <h3 class="h6">{{ demo.t('api_response') }}</h3>
+                    <pre><code>{{ demo.json(result.body|filter((v, k) => k not in ['hits', 'facet_counts'])) }}</code></pre>
+                </div>
+                {% if rawHit is not null %}
+                    <div class="col-md-6">
+                        <h3 class="h6">{{ demo.t('raw_hit_detail') }}</h3>
+                        <pre><code>{{ demo.json(rawHit) }}</code></pre>
+                    </div>
+                    <div class="col-md-6">
+                        <h3 class="h6">{{ demo.t('resolved_hit_detail', result.locale, result.availability ?? '') }}</h3>
+                        <pre><code>{{ demo.json(result.hits[0]) }}</code></pre>
+                    </div>
+                {% endif %}
+            </div>
+        </details>
+    {% endif %}
+</main>
+{% endblock %}
