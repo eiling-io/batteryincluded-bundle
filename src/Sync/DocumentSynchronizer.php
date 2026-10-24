@@ -6,10 +6,12 @@ namespace Batteryincluded\BatteryincludedBundle\Sync;
 
 use Batteryincluded\BatteryincludedBundle\BatteryincludedBundle;
 use Batteryincluded\BatteryincludedBundle\Collection\CollectionRegistry;
+use Batteryincluded\BatteryincludedBundle\Event\DocumentsEvent;
 use Batteryincluded\BatteryincludedBundle\Exception\ApiException;
 use Batteryincluded\BatteryincludedBundle\Provider\PartialDataProviderInterface;
 use BatteryIncludedSdk\Dto\AbstractDto;
 use BatteryIncludedSdk\Service\SyncService;
+use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 
 /**
  * Creates, replaces and deletes single documents without a full import, used by `bi:sync`, `bi:delete` and the
@@ -20,6 +22,7 @@ class DocumentSynchronizer
     public function __construct(
         private readonly CollectionRegistry $collections,
         private readonly int $batchSize = 500,
+        private readonly ?EventDispatcherInterface $eventDispatcher = null,
     ) {
     }
 
@@ -88,12 +91,12 @@ class DocumentSynchronizer
         foreach ($documents as $document) {
             $batch[] = $document;
             if (count($batch) >= $this->batchSize) {
-                $result->addResponse(ApiException::assertSuccessful($syncService->syncOneOrManyElements(...$batch), 'Sync'), count($batch));
+                $this->sendBatch($syncService, $result, $batch, $collection);
                 $batch = [];
             }
         }
         if ($batch !== []) {
-            $result->addResponse(ApiException::assertSuccessful($syncService->syncOneOrManyElements(...$batch), 'Sync'), count($batch));
+            $this->sendBatch($syncService, $result, $batch, $collection);
         }
 
         return $result;
@@ -114,5 +117,19 @@ class DocumentSynchronizer
         $response = $this->collections->get($collection, SyncService::class)->deleteElementsByIds(...array_values(array_unique($ids)));
 
         return (int) (ApiException::assertSuccessful($response, 'Delete')->getBody()['num_deleted'] ?? 0);
+    }
+
+    /**
+     * @param list<AbstractDto> $batch
+     */
+    private function sendBatch(SyncService $syncService, SyncResult $result, array $batch, string $collection): void
+    {
+        $event = new DocumentsEvent($batch, $collection, DocumentsEvent::CONTEXT_SYNC);
+        $this->eventDispatcher?->dispatch($event);
+        if ($event->getDocuments() === []) {
+            return;
+        }
+
+        $result->addResponse(ApiException::assertSuccessful($syncService->syncOneOrManyElements(...$event->getDocuments()), 'Sync'), count($event->getDocuments()));
     }
 }

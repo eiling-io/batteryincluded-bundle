@@ -6,10 +6,12 @@ namespace Batteryincluded\BatteryincludedBundle\Commands;
 
 use Batteryincluded\BatteryincludedBundle\BatteryincludedBundle;
 use Batteryincluded\BatteryincludedBundle\Collection\CollectionRegistry;
+use Batteryincluded\BatteryincludedBundle\Event\DocumentsEvent;
+use Batteryincluded\BatteryincludedBundle\Event\PostExportEvent;
+use Batteryincluded\BatteryincludedBundle\Event\PreExportEvent;
 use Batteryincluded\BatteryincludedBundle\Exception\ApiException;
 use Batteryincluded\BatteryincludedBundle\Provider\DataProviderInterface;
 use Batteryincluded\BatteryincludedBundle\Sync\SyncResult;
-use BatteryIncludedSdk\Dto\AbstractDto;
 use BatteryIncludedSdk\Service\Response;
 use BatteryIncludedSdk\Service\SyncService;
 use Symfony\Component\Console\Attribute\AsCommand;
@@ -22,6 +24,7 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Component\Lock\LockFactory;
 use Symfony\Component\Lock\LockInterface;
 use Symfony\Component\Lock\Store\FlockStore;
+use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 
 #[AsCommand(name: 'bi:export', description: 'Exports the documents of all data providers to BatteryIncluded (full import).')]
 class ExportCommand extends Command
@@ -30,6 +33,7 @@ class ExportCommand extends Command
         private readonly CollectionRegistry $collections,
         private readonly int $batchSize = 500,
         private readonly ?LockFactory $lockFactory = null,
+        private readonly ?EventDispatcherInterface $eventDispatcher = null,
     ) {
         parent::__construct();
     }
@@ -117,9 +121,20 @@ class ExportCommand extends Command
      */
     private function export(SymfonyStyle $io, string $collection, array $providers, int $batchSize, bool $dryRun, bool $fullImport): int
     {
+        $result = new SyncResult();
+        $start = microtime(true);
+
+        $preExport = new PreExportEvent($collection, $providers, $fullImport, $dryRun);
+        $this->eventDispatcher?->dispatch($preExport);
+        if ($preExport->isCancelled()) {
+            $io->error('The export was cancelled: ' . $preExport->getCancelReason());
+            $this->dispatchPostExport($collection, $fullImport, $dryRun, false, 0, $start, $result, 'Cancelled: ' . $preExport->getCancelReason());
+
+            return Command::FAILURE;
+        }
+
         $syncService = $this->collections->get($collection, SyncService::class);
         $transactionId = 'bi-export-' . date('YmdHis') . '-' . bin2hex(random_bytes(3));
-        $result = new SyncResult();
         $statistics = [];
         $documentIds = [];
         $duplicates = [];
@@ -128,23 +143,25 @@ class ExportCommand extends Command
 
         $progress = $io->isVerbose() ? null : $io->createProgressBar();
         $progress?->setFormat(' %message%: %current% documents, %elapsed:6s%, %memory:6s%');
-        $start = microtime(true);
 
         try {
             foreach ($providers as $provider) {
                 $providerStart = microtime(true);
-                $statistics[$provider::class] = ['documents' => 0, 'batches' => 0, 'time' => 0.0];
+                // per instance, a class can be registered more than once with different arguments
+                $key = spl_object_id($provider);
+                $statistics[$key] = ['class' => $provider::class, 'documents' => 0, 'batches' => 0, 'time' => 0.0];
                 $progress?->setMessage($this->shortName($provider::class));
                 $progress?->display();
 
                 foreach ($provider->getBatches($batchSize) as $batch) {
-                    /** @var list<AbstractDto> $batch */
-                    $batch = array_values($batch);
+                    $event = new DocumentsEvent(array_values($batch), $collection, DocumentsEvent::CONTEXT_EXPORT, $provider);
+                    $this->eventDispatcher?->dispatch($event);
+                    $batch = $event->getDocuments();
                     if ($batch === []) {
                         continue;
                     }
-                    $statistics[$provider::class]['documents'] += count($batch);
-                    ++$statistics[$provider::class]['batches'];
+                    $statistics[$key]['documents'] += count($batch);
+                    ++$statistics[$key]['batches'];
 
                     if ($dryRun) {
                         foreach ($batch as $document) {
@@ -158,6 +175,7 @@ class ExportCommand extends Command
                     } elseif ($fullImport) {
                         if ($pending !== null) {
                             $this->send($io, $result, $syncService->syncFullBatchElements($transactionId, false, ...$pending), count($pending));
+                            $this->assertNoRejections($result);
                         }
                         $pending = $batch;
                     } else {
@@ -165,16 +183,13 @@ class ExportCommand extends Command
                     }
                     $progress?->advance(count($batch));
                 }
-                $statistics[$provider::class]['time'] = microtime(true) - $providerStart;
-                $io->writeln(sprintf('%s: %d documents', $provider::class, $statistics[$provider::class]['documents']), OutputInterface::VERBOSITY_VERBOSE);
+                $statistics[$key]['time'] = microtime(true) - $providerStart;
+                $io->writeln(sprintf('%s: %d documents', $provider::class, $statistics[$key]['documents']), OutputInterface::VERBOSITY_VERBOSE);
             }
 
             if (!$dryRun && $fullImport) {
                 if ($pending === null) {
-                    $progress?->clear();
-                    $io->error('The providers delivered no documents. The transaction is not committed, a full import without documents would empty the collection.');
-
-                    return Command::FAILURE;
+                    throw new ApiException('The providers delivered no documents, a full import without documents would empty the collection.');
                 }
                 $progress?->setMessage('Commit');
                 $this->send($io, $result, $syncService->syncFullBatchElements($transactionId, true, ...$pending), count($pending));
@@ -186,6 +201,8 @@ class ExportCommand extends Command
                 $exception->getMessage(),
                 $fullImport && !$dryRun ? 'The transaction is not committed, the collection is unchanged.' : 'Documents sent so far are kept.',
             ]);
+            $this->listRejections($io, $result);
+            $this->dispatchPostExport($collection, $fullImport, $dryRun, false, array_sum(array_column($statistics, 'documents')), $start, $result, $exception->getMessage());
 
             return Command::FAILURE;
         }
@@ -194,7 +211,7 @@ class ExportCommand extends Command
         $io->newLine(2);
         $io->table(
             ['Provider', 'Documents', 'Batches', 'Time'],
-            array_map(fn (string $class, array $row) => [$this->shortName($class), $row['documents'], $row['batches'], Helper::formatTime($row['time'])], array_keys($statistics), $statistics),
+            array_map(fn (array $row) => [$this->shortName($row['class']), $row['documents'], $row['batches'], Helper::formatTime($row['time'])], array_values($statistics)),
         );
 
         $total = array_sum(array_column($statistics, 'documents'));
@@ -203,20 +220,48 @@ class ExportCommand extends Command
                 $io->warning(sprintf('%d document ids are delivered more than once, the last one wins: %s', count($duplicates), implode(', ', array_slice(array_keys($duplicates), 0, 10))));
             }
             $io->success(sprintf('Dry run: %d documents serialized, nothing was sent.', $total));
+            $this->dispatchPostExport($collection, $fullImport, $dryRun, true, $total, $start, $result);
 
             return Command::SUCCESS;
         }
 
+        // only possible for the commit and without full import, every other batch is checked before the next one is sent
         if (!$result->isSuccessful()) {
-            $io->warning(sprintf('%d of %d documents were rejected:', count($result->getFailed()), $result->getSent()));
-            $io->listing(array_map(static fn (array $failure) => $failure['id'] . ': ' . $failure['error'], array_slice($result->getFailed(), 0, 20)));
+            $this->listRejections($io, $result);
+            $this->dispatchPostExport($collection, $fullImport, $dryRun, false, $total, $start, $result, 'Documents were rejected');
 
             return Command::FAILURE;
         }
 
         $io->success(sprintf('Exported %d documents in %s.', $total, Helper::formatTime(microtime(true) - $start)));
+        $this->dispatchPostExport($collection, $fullImport, $dryRun, true, $total, $start, $result);
 
         return Command::SUCCESS;
+    }
+
+    /**
+     * Rejected documents of a full import stop it before the commit, otherwise they would be deleted from the collection.
+     */
+    private function assertNoRejections(SyncResult $result): void
+    {
+        if (!$result->isSuccessful()) {
+            throw new ApiException(sprintf('%d documents were rejected.', count($result->getFailed())));
+        }
+    }
+
+    private function listRejections(SymfonyStyle $io, SyncResult $result): void
+    {
+        if ($result->isSuccessful()) {
+            return;
+        }
+
+        $io->warning(sprintf('%d of %d documents were rejected:', count($result->getFailed()), $result->getSent()));
+        $io->listing(array_map(static fn (array $failure) => $failure['id'] . ': ' . $failure['error'], array_slice($result->getFailed(), 0, 20)));
+    }
+
+    private function dispatchPostExport(string $collection, bool $fullImport, bool $dryRun, bool $successful, int $documents, float $start, SyncResult $result, ?string $error = null): void
+    {
+        $this->eventDispatcher?->dispatch(new PostExportEvent($collection, $fullImport, $dryRun, $successful, $documents, microtime(true) - $start, $result, $error));
     }
 
     /**

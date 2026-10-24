@@ -713,6 +713,14 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *     export?: array{
  *         batch_size?: int|Param, // Default: 500
  *     },
+ *     doctrine?: bool|array{ // Syncs entities with #[BatteryIncludedDocument] after flush, requires the DoctrineBundle
+ *         enabled?: bool|Param, // Default: true
+ *     },
+ *     availability?: array{ // Scope of prices and stock per request, stored in the request attribute `_batteryincluded_availability`
+ *         hosts?: array<string, scalar|Param|null>,
+ *         locales?: array<string, scalar|Param|null>,
+ *         default?: scalar|Param|null, // Default: null
+ *     },
  *     search?: array{ // Defaults of the BrowseSearchStruct controller argument
  *         per_page?: int|Param, // Default: 24
  *         max_per_page?: int|Param, // Default: 100

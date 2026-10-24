@@ -1,4 +1,13 @@
+---
+title: Test application
+nav_order: 12
+---
+
 # Test application
+{: .no_toc }
+
+1. TOC
+{:toc}
 
 `tests/Application` is a minimal Symfony 7.4 application which uses the bundle. It is used to develop the bundle,
 to try the demo shop and to look at the api calls in the web profiler.
@@ -51,7 +60,8 @@ ddev exec -d /var/www/html/tests/Application "bin/console bi:export --force -v"
 The command sends the documents of all providers in batches of 500 within one transaction and commits it with the
 last batch. `--dry-run` checks the providers without sending anything.
 
-> **Warning:** this is a full import, all other documents of the collection are deleted. Use a dedicated test collection.
+{: .warning }
+This is a full import, all other documents of the collection are deleted. Use a dedicated test collection.
 
 With `-v` every api response is printed, the command stops with exit code 1 before the commit as soon as the api
 answers with an error status or rejects documents.

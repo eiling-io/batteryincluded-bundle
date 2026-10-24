@@ -18,12 +18,14 @@ use Symfony\Component\HttpKernel\ControllerMetadata\ArgumentMetadata;
 class SearchStructValueResolver implements ValueResolverInterface
 {
     /**
-     * Set this request attribute (e.g. in a listener) to select prices and stock of a country or sales channel.
+     * Scope of prices and stock (country or sales channel), set by the AvailabilityListener from the
+     * `batteryincluded.availability` configuration or by your own listener.
      */
     public const AVAILABILITY_ATTRIBUTE = '_batteryincluded_availability';
 
     public function __construct(
         private readonly RequestFilterParser $filterParser,
+        private readonly ?RequestAvailabilityResolver $availabilityResolver = null,
         private readonly int $defaultPerPage = 24,
         private readonly int $maxPerPage = 100,
     ) {
@@ -42,8 +44,7 @@ class SearchStructValueResolver implements ValueResolverInterface
         /** @var MapSearchStruct $options */
         $options = $argument->getAttributesOfType(MapSearchStruct::class, ArgumentMetadata::IS_INSTANCEOF)[0] ?? new MapSearchStruct();
         $locale = $options->locale ?? $request->getLocale();
-        $availability = $options->availability ?? $request->attributes->get(self::AVAILABILITY_ATTRIBUTE);
-        $availability = is_scalar($availability) && $availability !== '' ? (string) $availability : null;
+        $availability = $options->availability ?? $this->availabilityResolver?->resolve($request);
 
         if ($type === SuggestSearchStruct::class) {
             $searchStruct = new SuggestSearchStruct();

@@ -2,6 +2,9 @@
 
 Symfony integration of the [BatteryIncluded PHP SDK](https://github.com/eiling-io/batteryincluded-php-sdk).
 
+**Documentation: https://eiling-io.github.io/batteryincluded-bundle/** – configuration, export, Doctrine, events and
+extension points, search, console commands and the profiler.
+
 ## Configuration
 
 The bundle works without configuration file, it reads the credentials from the environment:
@@ -42,6 +45,12 @@ batteryincluded:
     search:
         per_page: 24           # defaults of the BrowseSearchStruct controller argument
         max_per_page: 100
+    availability:              # prices and stock per request, see "Availability"
+        hosts: {}              # e.g. 'shop.ch': ch, '*.shop.at': at
+        locales: {}            # e.g. de_CH: ch, de: de
+        default: ~
+    doctrine:
+        enabled: true          # only active with the DoctrineBundle
 ```
 
 The services of the sdk (`BrowseService`, `SuggestService`, `SyncService`, …) can be autowired and use the default
@@ -144,12 +153,63 @@ framework:
             'Batteryincluded\BatteryincludedBundle\Messenger\DeleteDocumentsMessage': async
 ```
 
+### Doctrine
+
+Mark entities whose changes update a document. After a successful flush the change is queued, at the end of the
+request, command or message all changes are sent at once: as messages if symfony/messenger is installed, otherwise
+directly. Failures are logged, the response is not affected.
+
+```php
+#[ORM\Entity]
+#[BatteryIncludedDocument('PRODUCT', deleteMissing: true)]   // document id PRODUCT-<doctrine id>
+class Product
+{
+}
+
+#[ORM\Entity]
+#[BatteryIncludedDocument('PRODUCT', identifier: 'getProductId', deleteOnRemove: false)]   // updates the product
+class Variant
+{
+}
+```
+
+| Option | Default | Meaning |
+|---|---|---|
+| `type` | – | Document type, e.g. `PRODUCT` |
+| `identifier` | Doctrine id | Method or property delivering the identifier, `null` skips the entity |
+| `collection` | `default` | Name of the collection in the bundle configuration |
+| `deleteOnRemove` | `true` | Removing the entity deletes the document, otherwise it is synced |
+| `deleteMissing` | `false` | Deletes the document if the providers no longer deliver it (e.g. a deactivated product). Only enable it if a `PartialDataProviderInterface` handles the type. |
+
+The attribute is repeatable and inherited. The documents themselves come from the providers (`getByIds()`), the
+attribute only says which ids changed. Use `DocumentChangeQueue::scheduleSync()` / `scheduleDelete()` to queue changes
+from your own code.
+
+## Events
+
+| Event | When | Use it to |
+|---|---|---|
+| `PreExportEvent` | before `bi:export` loads the first document | stop the export with `cancel($reason)`, e.g. during maintenance |
+| `DocumentsEvent` | for every batch of `bi:export`, `bi:sync`, the `DocumentSynchronizer` and the messenger handlers | enrich, replace or remove documents with `setDocuments()`; `context` is `export` or `sync` |
+| `PostExportEvent` | after `bi:export` finished, failed or was cancelled | clear caches, send a notification; contains documents, duration, `SyncResult` and error |
+
+Documents removed in a `DocumentsEvent` are not sent: a full import then deletes them from the collection, a sync keeps
+the version in the collection.
+
+```php
+#[AsEventListener]
+public function onDocuments(DocumentsEvent $event): void
+{
+    $event->setDocuments(array_filter($event->getDocuments(), fn (AbstractDto $document) => !$this->isHidden($document)));
+}
+```
+
 ## Search in a controller
 
 A `BrowseSearchStruct` or `SuggestSearchStruct` argument is filled from the query string: `q`, filters (`f[field][]=value`,
 `f[field][from]=1&f[field][till]=9`), `sort`, `page` and `per_page` (limited to `max_per_page`). The locale is the one
-of the request, the availability (prices and stock of a country or sales channel) is read from the request attribute
-`_batteryincluded_availability`, set it e.g. in a request listener. Invalid values are ignored.
+of the request, the availability comes from the request attribute `_batteryincluded_availability` (see below).
+Invalid values are ignored.
 
 ```php
 #[Route('/search')]
@@ -162,6 +222,27 @@ public function search(
 ```
 
 `MapSearchStruct` is optional, it also takes `maxPerPage`, `locale`, `availability` and `presetId`.
+
+### Availability
+
+Prices and stock of a country or sales channel are selected by the availability scope. With `batteryincluded.availability`
+a request listener stores it in the request attribute `_batteryincluded_availability`: the first matching host, then
+the locale (`de_CH`, then the language `de`), then `default`. Set the attribute in your own listener (priority above
+15) to use another source, e.g. the sales channel of the session.
+
+```yaml
+batteryincluded:
+    availability:
+        hosts:
+            'shop.ch': ch
+            '*.shop.at': at
+        locales:
+            de_CH: ch
+            de: de
+        default: de
+```
+
+`RequestAvailabilityResolver::resolve($request)` returns the scope outside of controllers.
 
 ## Console
 
@@ -197,6 +278,11 @@ batteryincluded_demo:
 ```
 
 ## Development
+
+```bash
+make ddev-test      # phpunit, the api is mocked
+make ddev-quality   # code style, phpstan, lint and tests
+```
 
 - [Test application](docs/test-application.md): setup, test data, demo shop and profiler
 - [Contributing](CONTRIBUTING.md): workflow, checks and conventions

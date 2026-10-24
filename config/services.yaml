@@ -14,6 +14,8 @@ services:
             - '../src/Client'
             - '../src/Collection'
             - '../src/Demo'
+            - '../src/Doctrine'
+            - '../src/Event'
             - '../src/Exception'
             - '../src/Http/Attribute'
             - '../src/Messenger'
@@ -35,7 +37,9 @@ services:
         arguments:
             $batchSize: '%batteryincluded.export.batch_size%'
             $lockFactory: '@?lock.factory'
+            $eventDispatcher: '@?event_dispatcher'
 
     Batteryincluded\BatteryincludedBundle\Sync\DocumentSynchronizer:
         arguments:
             $batchSize: '%batteryincluded.export.batch_size%'
+            $eventDispatcher: '@?event_dispatcher'

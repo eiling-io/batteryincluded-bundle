@@ -9,6 +9,8 @@ use Batteryincluded\BatteryincludedBundle\Client\LoggingHttpClient;
 use Batteryincluded\BatteryincludedBundle\Client\SymfonyHttpClient;
 use Batteryincluded\BatteryincludedBundle\Client\TraceableHttpClient;
 use Batteryincluded\BatteryincludedBundle\Collection\CollectionRegistry;
+use Batteryincluded\BatteryincludedBundle\Doctrine\DocumentChangeListener;
+use Batteryincluded\BatteryincludedBundle\Http\RequestAvailabilityResolver;
 use Batteryincluded\BatteryincludedBundle\Http\SearchStructValueResolver;
 use Batteryincluded\BatteryincludedBundle\Profiler\ApiDataCollector;
 use Batteryincluded\BatteryincludedBundle\Provider\DataProviderInterface;
@@ -22,6 +24,7 @@ use BatteryIncludedSdk\Service\SyncService;
 use BatteryIncludedSdk\Shop\BrowseService;
 use BatteryIncludedSdk\SimilarSearch\SimilarSearchService;
 use BatteryIncludedSdk\Suggest\SuggestService;
+use Doctrine\ORM\Events;
 use Symfony\Component\Config\Definition\Configurator\DefinitionConfigurator;
 use Symfony\Component\DependencyInjection\Argument\ServiceLocatorArgument;
 use Symfony\Component\DependencyInjection\Argument\TaggedIteratorArgument;
@@ -125,6 +128,29 @@ class BatteryincludedBundle extends AbstractBundle
                         ->integerNode('batch_size')->defaultValue(500)->min(1)->end()
                     ->end()
                 ->end()
+                ->arrayNode('doctrine')
+                    ->info('Syncs entities with #[BatteryIncludedDocument] after flush, requires the DoctrineBundle')
+                    ->canBeDisabled()
+                ->end()
+                ->arrayNode('availability')
+                    ->info('Scope of prices and stock per request, stored in the request attribute `_batteryincluded_availability`')
+                    ->addDefaultsIfNotSet()
+                    ->children()
+                        ->arrayNode('hosts')
+                            ->info('Host => scope, e.g. "shop.ch": ch, "*.shop.ch" matches the subdomains')
+                            ->useAttributeAsKey('host')
+                            ->normalizeKeys(false)
+                            ->scalarPrototype()->end()
+                        ->end()
+                        ->arrayNode('locales')
+                            ->info('Locale or language => scope, e.g. de_CH: ch, de: de')
+                            ->useAttributeAsKey('locale')
+                            ->normalizeKeys(false)
+                            ->scalarPrototype()->end()
+                        ->end()
+                        ->scalarNode('default')->defaultNull()->end()
+                    ->end()
+                ->end()
                 ->arrayNode('search')
                     ->info('Defaults of the BrowseSearchStruct controller argument')
                     ->addDefaultsIfNotSet()
@@ -155,8 +181,20 @@ class BatteryincludedBundle extends AbstractBundle
         $builder->setParameter('batteryincluded.default_base_url', self::DEFAULT_BASE_URL);
         $builder->setParameter('batteryincluded.export.batch_size', $config['export']['batch_size']);
 
+        if ($config['doctrine']['enabled'] && class_exists(Events::class) && isset($builder->getParameter('kernel.bundles')['DoctrineBundle'])) {
+            $listener = $builder->register(DocumentChangeListener::class, DocumentChangeListener::class)->setAutowired(true);
+            foreach ([Events::preFlush, Events::postPersist, Events::postUpdate, Events::preRemove, Events::postRemove, Events::postFlush, Events::onClear] as $event) {
+                $listener->addTag('doctrine.event_listener', ['event' => $event]);
+            }
+        }
+
         $this->registerHttpClient($config, $builder);
         $this->registerCollections($config, $builder);
+
+        $builder->getDefinition(RequestAvailabilityResolver::class)
+            ->setArgument('$hosts', $config['availability']['hosts'])
+            ->setArgument('$locales', $config['availability']['locales'])
+            ->setArgument('$default', $config['availability']['default']);
 
         $builder->getDefinition(SearchStructValueResolver::class)
             ->setArgument('$defaultPerPage', $config['search']['per_page'])

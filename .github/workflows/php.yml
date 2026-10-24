@@ -32,14 +32,6 @@ jobs:
             - name: run phpstan
               run: ./tools/phpstan analyse -c phpstan.neon
 
-#            - name: run tests
-#              run: ./vendor/bin/phpunit --stop-on-failure --stop-on-error
-#              env:
-#                  COLLECTION: ${{ secrets.COLLECTION }}
-#                  APIKEY: ${{ secrets.APIKEY }}
-
-        # Add a test script to composer.json, for instance: "test": "vendor/bin/phpunit"
-        # Docs: https://getcomposer.org/doc/articles/scripts.md
-
-        # - name: Run test suite
-        #   run: composer run-script test
+            # the api is mocked, no credentials needed
+            - name: run tests
+              run: ./vendor/bin/phpunit

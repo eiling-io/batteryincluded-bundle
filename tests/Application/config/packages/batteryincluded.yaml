@@ -20,6 +20,14 @@ batteryincluded:
     logging:
         slow_threshold: 1000
 
+    # prices and stock of the country for the BrowseSearchStruct argument of /search, the demo shop selects them itself
+    availability:
+        hosts:
+            'batteryincluded-bundle.ddev.site': de
+        locales:
+            de_CH: ch
+            de_AT: at
+
 framework:
     http_client:
         scoped_clients:
