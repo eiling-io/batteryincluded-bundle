@@ -76,19 +76,22 @@
                     <i class="bi bi-search me-2 text-body-secondary" aria-hidden="true"></i>${completion.html}
                 </a>`).join('');
         }
-        if (data.products.length > 0) {
-            html += `<h6 class="dropdown-header border-top">${escape(list.dataset.labelProducts)}</h6>`;
-            html += data.products.map((product) => `
-                <a class="dropdown-item suggest-product d-flex align-items-center gap-2" role="option" id="suggest-${id++}"
-                   href="${escape(product.url || searchUrl(query))}">
-                    <img src="${escape(product.image)}" alt="" loading="lazy">
-                    <span class="text-truncate flex-grow-1">${product.html}<br><small class="text-body-secondary">${escape(product.ordernumber)}</small></span>
-                    ${product.price ? `<span class="suggest-price text-end">
-                        <span class="fw-semibold">${escape(product.price)}</span>
-                        ${product.stock ? `<br><small class="${escape(product.stock.class)}">${escape(product.stock.label)}</small>` : ''}
+        // one group per document type: products, content pages, blog posts, … (html and text are escaped by the server)
+        data.groups.forEach((group) => {
+            html += `<h6 class="dropdown-header border-top">${escape(group.label)}</h6>`;
+            html += group.items.map((item) => `
+                <a class="dropdown-item suggest-document d-flex align-items-center gap-2" role="option" id="suggest-${id++}"
+                   href="${escape(item.url || searchUrl(query))}">
+                    ${item.image
+                        ? `<img src="${escape(item.image)}" alt="" loading="lazy">`
+                        : `<span class="suggest-icon"><i class="bi ${escape(item.icon || 'bi-file-earmark')}" aria-hidden="true"></i></span>`}
+                    <span class="text-truncate flex-grow-1">${item.html}<br><small class="text-body-secondary">${item.text}</small></span>
+                    ${item.price ? `<span class="suggest-price text-end">
+                        <span class="fw-semibold">${escape(item.price)}</span>
+                        ${item.stock ? `<br><small class="${escape(item.stock.class)}">${escape(item.stock.label)}</small>` : ''}
                     </span>` : ''}
                 </a>`).join('');
-        }
+        });
         if (data.found > 0) {
             html += `<a class="dropdown-item border-top text-primary fw-semibold py-2" role="option" id="suggest-${id++}" href="${escape(searchUrl(query))}">
                 ${escape(list.dataset.labelAll.replace('%s', data.found))} <i class="bi bi-arrow-right" aria-hidden="true"></i></a>`;

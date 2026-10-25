@@ -83,10 +83,10 @@ final class AddLivePrices
     {
         $products = array_filter($event->getDocuments(), static fn ($document) => $document instanceof ProductBaseDto);
         // one request for the whole batch instead of one per product
-        $prices = $this->prices->forProducts(array_map(static fn (ProductBaseDto $product) => $product->getId(), $products));
+        $prices = $this->prices->forProducts(array_map(static fn (ProductBaseDto $product) => $product->getOrdernumber(), $products));
 
         foreach ($products as $product) {
-            $product->setPrice($prices[$product->getId()] ?? $product->getPrice());
+            $product->setPrice($prices[$product->getOrdernumber()] ?? $product->getPrice());
         }
     }
 }

@@ -3,45 +3,22 @@
 namespace App\Provider;
 
 use Batteryincluded\BatteryincludedBundle\Provider\PartialDataProviderInterface;
-use BatteryIncludedSdk\Dto\BlogBaseDto;
+use BatteryIncludedSdkTests\Helper;
 use Generator;
 
+/**
+ * Blog posts of the sdk test data (tests/Helper.php) with svg cover images.
+ */
 class BlogProvider implements PartialDataProviderInterface
 {
     // the test data is generated, a shop would load only the requested ids from its database
     public function getByIds(array $ids): iterable
     {
-        return array_filter($this->generateBlogs(10), static fn ($document) => in_array($document->getIdentifier(), $ids, true));
+        return array_filter(Helper::generateBlogs(10), static fn ($document) => in_array($document->getIdentifier(), $ids, true));
     }
 
     public function getBatches(int $batchSize): Generator
     {
-        $blogs = $this->generateBlogs(10);
-        $batches = array_chunk($blogs, $batchSize);
-
-        foreach ($batches as $skuBatch) {
-            yield $skuBatch;
-        }
-    }
-
-    public function generateBlogs(int $int): array
-    {
-        $blogs = [];
-        for ($i = 1; $i <= $int; $i++) {
-            $blog = new BlogBaseDto((string) $i, 'BLOG');
-            $blog->setTitle('Blog Post ' . $i);
-            $blog->setDescription('This is the content of blog post number ' . $i . '.');
-            $blog->setAuthor('Author ' . $i);
-            $blog->setPreviewImage('https://dummyimage.com/600x400/bbb/fff.png&text=Blog ' . $i);
-            $blog->setPublishedAt((new \DateTime())->modify('-' . (30 - $i) . ' days')->format('Y-m-d'));
-            $blog
-                ->addTranslation('de', 'title', 'Blogbeitrag ' . $i)
-                ->addTranslation('de', 'description', 'Das ist der Inhalt von Blogbeitrag Nummer ' . $i . '.')
-                ->addTranslation('en', 'title', 'Blog Post ' . $i)
-                ->addTranslation('en', 'description', 'This is the content of blog post number ' . $i . '.');
-            $blogs[] = $blog;
-        }
-
-        return $blogs;
+        yield from array_chunk(Helper::generateBlogs(10), $batchSize);
     }
 }

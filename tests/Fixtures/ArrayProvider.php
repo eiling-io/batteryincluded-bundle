@@ -29,7 +29,6 @@ class ArrayProvider implements PartialDataProviderInterface, CollectionAwareData
     public static function product(string $id): ProductBaseDto
     {
         $product = new ProductBaseDto($id);
-        $product->setId($id);
         $product->setName('Product ' . $id);
 
         return $product;

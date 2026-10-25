@@ -34,6 +34,8 @@ return [
         'to_product' => 'Zum Artikel',
         'item_number' => 'Art.-Nr.',
         'blog' => 'Blog',
+        'content' => 'Service',
+        'to_page' => 'Zur Seite',
         'no_results' => 'Keine Produkte gefunden',
         'no_results_hint' => 'Versuche einen anderen Suchbegriff oder entferne Filter.',
         'error' => 'Die Anfrage an BatteryIncluded ist fehlgeschlagen.',
@@ -48,7 +50,6 @@ return [
         'language' => 'Sprache',
         'theme_toggle' => 'Hell-/Dunkelmodus umschalten',
         'suggestions' => 'Suchvorschläge',
-        'products' => 'Produkte',
         'show_all_results' => 'Alle %s Treffer anzeigen',
         'api_details' => 'API-Details',
         'api_request' => 'Request',
@@ -80,7 +81,7 @@ return [
             'type' => 'Inhalt',
         ],
         'facet_values' => [
-            'type' => ['PRODUCT' => 'Produkte', 'BLOG' => 'Blogbeiträge'],
+            'type' => ['PRODUCT' => 'Produkte', 'BLOG' => 'Blogbeiträge', 'CONTENT' => 'Inhaltsseiten'],
         ],
     ],
     'en' => [
@@ -113,6 +114,8 @@ return [
         'to_product' => 'View product',
         'item_number' => 'Item no.',
         'blog' => 'Blog',
+        'content' => 'Service',
+        'to_page' => 'Open page',
         'no_results' => 'No products found',
         'no_results_hint' => 'Try another search term or remove some filters.',
         'error' => 'The request to BatteryIncluded failed.',
@@ -127,7 +130,6 @@ return [
         'language' => 'Language',
         'theme_toggle' => 'Toggle light/dark mode',
         'suggestions' => 'Suggestions',
-        'products' => 'Products',
         'show_all_results' => 'Show all %s results',
         'api_details' => 'API details',
         'api_request' => 'Request',
@@ -159,7 +161,7 @@ return [
             'type' => 'Content',
         ],
         'facet_values' => [
-            'type' => ['PRODUCT' => 'Products', 'BLOG' => 'Blog posts'],
+            'type' => ['PRODUCT' => 'Products', 'BLOG' => 'Blog posts', 'CONTENT' => 'Content pages'],
         ],
     ],
 ];

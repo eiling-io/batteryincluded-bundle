@@ -32,6 +32,7 @@ batteryincluded:
             base_url: ~                              # defaults to base_url
 
     http_client: ~             # service id of a Symfony http client, null uses curl
+    write_timeout: 300         # seconds, import, update and delete calls with the Symfony http client
     cache:
         enabled: false
         pool: cache.app
@@ -70,7 +71,8 @@ public function __construct(
 
 With `http_client` the api calls are sent by a Symfony http client instead of curl: timeouts, retries and proxies are
 configured like for every other client, tests can replace it with the `MockHttpClient`, and the calls appear in the
-HttpClient panel of the profiler.
+HttpClient panel of the profiler. Import, update and delete calls use `write_timeout` instead of the `timeout` of the
+client: the api answers the commit of a full import only after indexing, which takes longer than a search.
 
 ```yaml
 batteryincluded:
@@ -119,6 +121,10 @@ an error or rejects documents, the collection is then unchanged. It never commit
 
 Providers implementing `CollectionAwareDataProviderInterface` deliver only to the collections they support, all other
 providers deliver to every collection.
+
+The document id is the type plus the identifier from the constructor of the DTO (`PRODUCT-5`), exported as `id` in
+the document root. Content pages, FAQ entries or stores get a type of their own, see
+[own document types](https://eiling-io.github.io/batteryincluded-bundle/export#own-document-types).
 
 ## Single documents
 
@@ -268,7 +274,8 @@ calls appear in the "Performance" timeline as well.
 
 The demo shop of the sdk (`examples` directory) is part of the bundle: search with suggestions, facets, sorting,
 pagination, extensions (teasers, promotions, redirects, codes), language and country switch and a detail page with
-the source of every field. It needs the TwigBundle, import the routes to enable it:
+the source of every field. The suggestions are grouped by document type (products, content pages, blog posts) and link
+to the detail page if `id` is selected under Suggest in the portal. It needs the TwigBundle, import the routes to enable it:
 
 ```yaml
 # config/routes/batteryincluded.yaml

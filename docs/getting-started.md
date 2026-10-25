@@ -53,7 +53,7 @@ Collection
  ------------- ----------------------------------------------------
   Base URL      https://api.batteryincluded.io/api/v1/collections/
   Collection    customer.my-shop
-  API key       uIdm••••••••
+  API key       abcd••••••••
   Status        200 in 153 ms
   Documents     730
   Search time   7 ms

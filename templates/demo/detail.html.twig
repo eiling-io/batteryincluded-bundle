@@ -47,6 +47,22 @@
                                     {{ demo.t('read_article') }} <i class="bi bi-box-arrow-up-right" aria-hidden="true"></i>
                                 </a>
                             {% endif %}
+                        {% elseif type == 'CONTENT' %}
+                            <div class="small text-uppercase text-body-secondary fw-semibold">
+                                <i class="bi bi-file-earmark-text" aria-hidden="true"></i> {{ demo.t('content') }}
+                            </div>
+                            <h1 class="h3 mt-1">{{ data.title ?? '' }}</h1>
+                            {% if (data.teaser ?? '') is not empty %}
+                                <p class="lead">{{ data.teaser }}</p>
+                            {% endif %}
+                            {% for paragraph in (data.content ?? '')|split("\n\n")|filter(p => p|trim is not empty) %}
+                                <p>{{ paragraph|nl2br }}</p>
+                            {% endfor %}
+                            {% if (data.url ?? '') is not empty %}
+                                <a class="btn btn-primary" href="{{ data.url }}" target="_blank" rel="noopener">
+                                    {{ demo.t('to_page') }} <i class="bi bi-box-arrow-up-right" aria-hidden="true"></i>
+                                </a>
+                            {% endif %}
                         {% else %}
                             {% set stock = demo.stockStatus(data) %}
                             {% if (data.manufacture ?? '') is not empty %}

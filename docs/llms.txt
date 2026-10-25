@@ -9,8 +9,8 @@ read [llms-full.txt](https://eiling-io.github.io/batteryincluded-bundle/llms-ful
 ## Docs
 
 - [Getting started](https://raw.githubusercontent.com/eiling-io/batteryincluded-bundle/main/docs/getting-started.md): installation, credentials, first search
-- [Configuration](https://raw.githubusercontent.com/eiling-io/batteryincluded-bundle/main/docs/configuration.md): all options, several collections, Symfony http client, cache, logging
-- [Export](https://raw.githubusercontent.com/eiling-io/batteryincluded-bundle/main/docs/export.md): data providers, bi:export, full import and its safety nets
+- [Configuration](https://raw.githubusercontent.com/eiling-io/batteryincluded-bundle/main/docs/configuration.md): all options, several collections, Symfony http client and write_timeout, cache, logging
+- [Export](https://raw.githubusercontent.com/eiling-io/batteryincluded-bundle/main/docs/export.md): data providers, own document types, bi:export, full import and its safety nets
 - [Single documents](https://raw.githubusercontent.com/eiling-io/batteryincluded-bundle/main/docs/single-documents.md): bi:sync, bi:delete, DocumentSynchronizer, DocumentChangeQueue, Messenger
 - [Doctrine](https://raw.githubusercontent.com/eiling-io/batteryincluded-bundle/main/docs/doctrine.md): #[BatteryIncludedDocument], sync of entities after flush
 - [Events & extension points](https://raw.githubusercontent.com/eiling-io/batteryincluded-bundle/main/docs/events.md): PreExportEvent, DocumentsEvent, PostExportEvent, interfaces, attributes, services
@@ -20,7 +20,7 @@ read [llms-full.txt](https://eiling-io.github.io/batteryincluded-bundle/llms-ful
 ## Optional
 
 - [Profiler & logging](https://raw.githubusercontent.com/eiling-io/batteryincluded-bundle/main/docs/profiler.md): web profiler panel, log channel
-- [Demo shop](https://raw.githubusercontent.com/eiling-io/batteryincluded-bundle/main/docs/demo-shop.md): storefront inside the bundle
+- [Demo shop](https://raw.githubusercontent.com/eiling-io/batteryincluded-bundle/main/docs/demo-shop.md): storefront inside the bundle, suggestions grouped by document type
 - [Test application](https://raw.githubusercontent.com/eiling-io/batteryincluded-bundle/main/docs/test-application.md): Symfony app used to develop the bundle
 - [Development](https://raw.githubusercontent.com/eiling-io/batteryincluded-bundle/main/docs/development.md): tests, code style, static analysis
 - [PHP SDK documentation](https://eiling-io.github.io/batteryincluded-php-sdk/llms.txt): DTOs, translations, availability, search API

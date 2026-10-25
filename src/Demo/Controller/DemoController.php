@@ -68,6 +68,8 @@ class DemoController
         // teasers are placed between the products, all other extensions are shown above the result
         $items = array_map(static fn (array $hit) => match ($hit['document']['type'] ?? 'PRODUCT') {
             'BLOG' => ['type' => 'blog', 'id' => (string) ($hit['document']['id'] ?? ''), 'data' => $hit['document']['_BLOG'] ?? []],
+            // content pages of the test application (`App\Dto\ContentPageDto`)
+            'CONTENT' => ['type' => 'content', 'id' => (string) ($hit['document']['id'] ?? ''), 'data' => $hit['document']['_CONTENT'] ?? []],
             default => ['type' => 'product', 'id' => (string) ($hit['document']['id'] ?? ''), 'data' => $hit['document']['_PRODUCT'] ?? []],
         }, $hits);
         foreach ($result?->getTeaserExtensions() ?? [] as $teaser) {
@@ -194,6 +196,13 @@ class DemoController
         return $this->demo->applyCookies(new Response($html));
     }
 
+    // documents per type in the suggestions
+    private const SUGGEST_LIMITS = ['PRODUCT' => 4, 'default' => 3];
+
+    private const SUGGEST_ORDER = ['PRODUCT' => 0, 'CONTENT' => 1, 'BLOG' => 2];
+
+    private const SUGGEST_ICONS = ['BLOG' => 'bi-journal-text', 'CONTENT' => 'bi-file-earmark-text'];
+
     public function suggest(Request $request): JsonResponse
     {
         $this->demo->initialize($request);
@@ -201,7 +210,7 @@ class DemoController
 
         $query = mb_trim((string) $request->query->get('q', ''));
         if (mb_strlen($query) < 2) {
-            return new JsonResponse(['completions' => [], 'products' => [], 'found' => 0]);
+            return new JsonResponse(['completions' => [], 'groups' => [], 'found' => 0]);
         }
 
         $searchStruct = new SuggestSearchStruct();
@@ -224,27 +233,102 @@ class DemoController
             ];
         }
 
-        $products = [];
-        foreach (array_slice($response->getDocuments(), 0, 4) as $document) {
-            // price (and status) of the country, delivered in `_PRODUCT_availability` if selected under Suggest in the portal
-            $product = AvailabilityResolver::resolveDocument($document, $country)['_PRODUCT'] ?? [];
-            // the shop id (`_PRODUCT.id`, selected under Suggest in the portal) plus the type is the document id, e.g. PRODUCT-720
-            $productId = strip_tags((string) ($product['id'] ?? ''));
-            // the highlighted name is part of the _PRODUCT_i18n node, resolved by the gateway for the requested locale
-            $name = (string) ($document['_PRODUCT_i18n']['name'] ?? $product['name'] ?? '');
-            $products[] = [
-                'html' => $this->demo->highlight($name),
-                'image' => (string) ($product['imageUrl'] ?? ''),
-                'url' => $productId !== '' ? $this->demo->detailUrl('PRODUCT-' . $productId) : '',
-                'ordernumber' => strip_tags((string) ($product['ordernumber'] ?? '')),
-                'price' => isset($product['price']) ? $this->demo->formatPrice((float) strip_tags((string) $product['price'])) : '',
-                'stock' => isset($product['active']) || isset($product['instock']) ? $this->demo->stockStatus($product) : null,
-            ];
+        // the documents contain only the fields selected under Suggest in the portal, the root node tells the type
+        $groups = [];
+        foreach ($response->getDocuments() as $document) {
+            $type = self::documentType($document);
+            if (count($groups[$type] ?? []) < (self::SUGGEST_LIMITS[$type] ?? self::SUGGEST_LIMITS['default'])) {
+                $groups[$type][] = $type === 'PRODUCT' ? $this->suggestedProduct($document, $country) : $this->suggestedDocument($document, $type);
+            }
         }
+        // products first, then content pages, blog posts and other types in the order of the api
+        uksort($groups, static fn (string $a, string $b) => (self::SUGGEST_ORDER[$a] ?? 99) <=> (self::SUGGEST_ORDER[$b] ?? 99));
+        $groups = array_map(fn (string $type, array $items) => [
+            'type' => $type,
+            'label' => $this->demo->facetValueLabel('type', $type),
+            'items' => $items,
+        ], array_keys($groups), $groups);
 
-        $jsonResponse = new JsonResponse(['completions' => $completions, 'products' => $products, 'found' => $response->getFounds()]);
+        $jsonResponse = new JsonResponse(['completions' => $completions, 'groups' => $groups, 'found' => $response->getFounds()]);
         $jsonResponse->setEncodingOptions($jsonResponse->getEncodingOptions() | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
 
         return $this->demo->applyCookies($jsonResponse);
+    }
+
+    /**
+     * Type of a suggested document: prefix of the document id (`CONTENT-123`) or its root nodes (`_CONTENT_i18n`).
+     */
+    private static function documentType(array $document): string
+    {
+        if (preg_match('/^([A-Z0-9]+)-/', strip_tags((string) ($document['id'] ?? '')), $matches) === 1) {
+            return $matches[1];
+        }
+        foreach (array_keys($document) as $key) {
+            if (preg_match('/^_([A-Z0-9]+?)(' . I18nResolver::SUFFIX . '|' . AvailabilityResolver::SUFFIX . ')?$/', (string) $key, $matches) === 1) {
+                return $matches[1];
+            }
+        }
+
+        return 'PRODUCT';
+    }
+
+    /**
+     * Document id for the detail link: the id in the document root (`PRODUCT-1`) if selected under Suggest in the
+     * portal. Collections exported with an sdk before the root id may still deliver the shop id `_<TYPE>.id`.
+     */
+    private static function documentId(array $document, string $type, array $data): string
+    {
+        $id = strip_tags((string) ($document['id'] ?? ''));
+        if ($id !== '') {
+            return $id;
+        }
+        $shopId = strip_tags((string) ($data['id'] ?? ''));
+
+        return $shopId !== '' ? $type . '-' . $shopId : '';
+    }
+
+    private function suggestedProduct(array $document, string $country): array
+    {
+        // price (and status) of the country, delivered in `_PRODUCT_availability` if selected under Suggest in the portal
+        $product = AvailabilityResolver::resolveDocument($document, $country)['_PRODUCT'] ?? [];
+        $id = self::documentId($document, 'PRODUCT', $product);
+        // the highlighted name is part of the _PRODUCT_i18n node, resolved by the gateway for the requested locale
+        $name = (string) ($document['_PRODUCT_i18n']['name'] ?? $product['name'] ?? '');
+
+        return [
+            'html' => $this->demo->highlight($name),
+            'image' => (string) ($product['imageUrl'] ?? ''),
+            'url' => $id !== '' ? $this->demo->detailUrl($id) : $this->searchUrl($name, 'PRODUCT'),
+            'text' => strip_tags((string) ($product['ordernumber'] ?? '')),
+            'price' => isset($product['price']) ? $this->demo->formatPrice((float) strip_tags((string) $product['price'])) : '',
+            'stock' => isset($product['active']) || isset($product['instock']) ? $this->demo->stockStatus($product) : null,
+        ];
+    }
+
+    /**
+     * Fallback link without a document id under Suggest in the portal: searches the title within the type.
+     */
+    private function searchUrl(string $title, string $type): string
+    {
+        return $this->demo->url(['q' => strip_tags($title), 'f' => ['type' => [$type]], 'sort' => null, 'page' => null]);
+    }
+
+    /**
+     * Blog posts, content pages and other types: title, teaser and the preview image if selected under Suggest.
+     */
+    private function suggestedDocument(array $document, string $type): array
+    {
+        $data = array_merge((array) ($document['_' . $type] ?? []), (array) ($document[I18nResolver::getKey($type)] ?? []));
+        $title = (string) ($data['title'] ?? $data['name'] ?? '');
+        $text = (string) ($data['teaser'] ?? $data['shortDescription'] ?? $data['description'] ?? '');
+        $id = self::documentId($document, $type, $data);
+
+        return [
+            'html' => $this->demo->highlight($title),
+            'image' => (string) ($data['previewImage'] ?? $data['imageUrl'] ?? ''),
+            'icon' => self::SUGGEST_ICONS[$type] ?? 'bi-file-earmark',
+            'url' => $id !== '' ? $this->demo->detailUrl($id) : $this->searchUrl($title, $type),
+            'text' => $this->demo->highlight($text),
+        ];
     }
 }

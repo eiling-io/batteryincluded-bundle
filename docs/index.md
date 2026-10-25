@@ -36,14 +36,14 @@ bin/console bi:status             # check configuration and connection
 |---|---|
 | [Getting started](getting-started) | Installation, credentials, first search |
 | [Configuration](configuration) | All options, several collections, Symfony http client, cache, logging |
-| [Export](export) | Data providers, `bi:export`, full import and its safety nets |
+| [Export](export) | Data providers, own document types, `bi:export`, full import and its safety nets |
 | [Single documents](single-documents) | `bi:sync`, `bi:delete`, `DocumentSynchronizer`, Messenger |
 | [Doctrine](doctrine) | `#[BatteryIncludedDocument]`: sync entities after flush |
 | [Events & extension points](events) | All events, interfaces, attributes, messages and services |
 | [Search in controllers](search) | `BrowseSearchStruct` arguments, `#[MapSearchStruct]`, availability |
 | [Console commands](console) | Reference of all `bi:*` commands |
 | [Profiler & logging](profiler) | Web profiler panel, timeline, log channel |
-| [Demo shop](demo-shop) | A complete storefront inside the bundle |
+| [Demo shop](demo-shop) | A complete storefront inside the bundle, suggestions grouped by document type |
 | [Test application](test-application) | The Symfony app used to develop the bundle |
 | [Development](development) | Tests, code style, static analysis, this documentation |
 

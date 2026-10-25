@@ -102,6 +102,11 @@ class BatteryincludedBundle extends AbstractBundle
                     ->info('Service id of a Symfony http client (e.g. "http_client" or a scoped client with retries), null uses curl')
                     ->defaultNull()
                 ->end()
+                ->floatNode('write_timeout')
+                    ->info('Seconds, idle timeout of the import, update and delete calls with the Symfony http client. The commit of a full import takes longer than a search, searches keep the timeout of the client.')
+                    ->defaultValue(300)
+                    ->min(1)
+                ->end()
                 ->arrayNode('cache')
                     ->info('Caches GET responses of rarely changing endpoints')
                     ->canBeEnabled()
@@ -210,7 +215,9 @@ class BatteryincludedBundle extends AbstractBundle
     {
         $transport = $config['http_client'] === null
             ? new Reference(CurlHttpClient::class)
-            : (new Definition(SymfonyHttpClient::class))->setArgument('$httpClient', new Reference($config['http_client']));
+            : (new Definition(SymfonyHttpClient::class))
+                ->setArgument('$httpClient', new Reference($config['http_client']))
+                ->setArgument('$writeTimeout', $config['write_timeout']);
         $client = $transport;
 
         if ($config['logging']['enabled']) {

@@ -29,6 +29,7 @@ batteryincluded:
             base_url: ~                # defaults to base_url
 
     http_client: ~                     # service id of a Symfony http client, null uses curl
+    write_timeout: 300                 # seconds, import, update and delete calls with the Symfony http client
 
     cache:
         enabled: false
@@ -110,6 +111,10 @@ framework:
 ```
 
 Like curl, error responses are returned to the SDK and not thrown, connection errors are thrown.
+
+The `timeout` of the client applies to searches. Import, update and delete calls use `write_timeout` (300 seconds by
+default): the API answers the commit of a full import only after indexing, a short timeout would abort the export
+although the API commits it. `retry_failed` does not repeat these POST calls after a timeout.
 
 ## Cache
 

@@ -66,7 +66,6 @@ final class ProductProvider implements PartialDataProviderInterface
     private function toDto(Product $product): ProductBaseDto
     {
         $dto = new ProductBaseDto((string) $product->getId());   // document id PRODUCT-<id>
-        $dto->setId((string) $product->getId());
         $dto->setName($product->getName());
         $dto->setPrice($product->getPrice());
         // translations, availability per country, categories, properties: see the SDK guide
@@ -76,8 +75,13 @@ final class ProductProvider implements PartialDataProviderInterface
 }
 ```
 
-Rules: deliver only documents that should be searchable; the document id is `<TYPE>-<identifier>`; never load the
+Rules: deliver only documents that should be searchable; the document id is `<TYPE>-<identifier>` from the
+constructor, exported as `id` in the document root (`setId()` is deprecated and no longer exported); never load the
 whole catalog into memory.
+
+Other content (content pages, FAQ, stores) gets its own type: extend `BatteryIncludedSdk\Dto\AbstractTranslatableDto`,
+pass the type to the parent constructor and serialize the fields to `_<TYPE>` (see the export docs, "Own document
+types"). Configure the fields in the schema of the collection in the BatteryIncluded backend.
 
 ## 3. First export
 
@@ -139,7 +143,8 @@ public function search(
 Query parameters: `q`, `f[field][]=value`, `f[field][from]=1&f[field][till]=9`, `sort`, `page`, `per_page`. The
 locale is the request locale. `result.hits[].document._PRODUCT` holds the resolved fields, `result.getFacets()` the
 facets, `result.found` the number of hits. For search-as-you-type use a `SuggestSearchStruct` argument with
-`SuggestService::suggestWithFilter()`.
+`SuggestService::suggestWithFilter()`. Suggested documents contain only the fields selected under Suggest in the
+backend: select `id` (document id, e.g. `PRODUCT-5`) to link them, the prefix of the id is the type.
 
 Prices per country: configure the availability scope, it is stored in the request attribute `_batteryincluded_availability`:
 
@@ -155,6 +160,7 @@ batteryincluded:
 ```yaml
 batteryincluded:
     http_client: batteryincluded.http_client   # timeouts and retries
+    write_timeout: 300                         # seconds for imports, the commit of a full import waits for indexing
     cache:
         enabled: true                          # presets, highlights, recommendations
 framework:

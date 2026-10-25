@@ -192,9 +192,10 @@ class ExportCommand extends Command
                 if ($pending === null) {
                     throw new ApiException('The providers delivered no documents, a full import without documents would empty the collection.');
                 }
+                // the documents of the last batch were counted when they were loaded
                 $progress?->setMessage('Commit');
+                $progress?->display();
                 $this->send($io, $result, $syncService->syncFullBatchElements($transactionId, true, ...$pending), count($pending));
-                $progress?->advance(count($pending));
             }
         } catch (ApiException|\JsonException $exception) {
             $progress?->clear();

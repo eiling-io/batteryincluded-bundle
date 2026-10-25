@@ -26,6 +26,19 @@ class SymfonyHttpClientTest extends TestCase
         self::assertContains('X-BI-API-KEY: secret', $mockResponse->getRequestOptions()['headers']);
     }
 
+    public function testWriteTimeoutAppliesToWritesOnly(): void
+    {
+        $import = new MockResponse('[]');
+        $search = new MockResponse('{}');
+        $client = new SymfonyHttpClient(new MockHttpClient([$import, $search]), 300.0);
+
+        $client->send('https://api.test/collections/customer.test/documents/import', 'POST', [], "\n{}\n");
+        $client->send('https://api.test/collections/customer.test/documents/search', 'GET', [], '');
+
+        self::assertSame(300.0, $import->getRequestOptions()['timeout']);
+        self::assertNotSame(300.0, $search->getRequestOptions()['timeout']);
+    }
+
     public function testReturnsErrorResponsesLikeCurl(): void
     {
         $client = new SymfonyHttpClient(new MockHttpClient(new MockResponse('{"message":"invalid"}', ['http_code' => 422])));

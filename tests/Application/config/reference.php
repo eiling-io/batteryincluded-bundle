@@ -700,6 +700,7 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *         base_url?: scalar|Param|null, // Defaults to the base url of the default client // Default: null
  *     }>,
  *     http_client?: scalar|Param|null, // Service id of a Symfony http client (e.g. "http_client" or a scoped client with retries), null uses curl // Default: null
+ *     write_timeout?: float|Param, // Seconds, idle timeout of the import, update and delete calls with the Symfony http client. The commit of a full import takes longer than a search, searches keep the timeout of the client. // Default: 300
  *     cache?: bool|array{ // Caches GET responses of rarely changing endpoints
  *         enabled?: bool|Param, // Default: false
  *         pool?: scalar|Param|null, // Default: "cache.app"

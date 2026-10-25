@@ -15,8 +15,13 @@ use Symfony\Contracts\HttpClient\HttpClientInterface as SymfonyHttpClientInterfa
  */
 class SymfonyHttpClient implements HttpClientInterface
 {
-    public function __construct(private readonly SymfonyHttpClientInterface $httpClient)
-    {
+    /**
+     * @param float|null $writeTimeout idle timeout of import, update and delete calls, null keeps the one of the client
+     */
+    public function __construct(
+        private readonly SymfonyHttpClientInterface $httpClient,
+        private readonly ?float $writeTimeout = null,
+    ) {
     }
 
     public function send(string $url, string $method, array $header, string $data): Response
@@ -24,6 +29,10 @@ class SymfonyHttpClient implements HttpClientInterface
         $options = ['headers' => $header];
         if ($data !== '') {
             $options['body'] = $data;
+        }
+        // the api answers the commit of a full import only after indexing, searches (GET) keep the short timeout
+        if ($method !== 'GET' && $this->writeTimeout !== null) {
+            $options['timeout'] = $this->writeTimeout;
         }
 
         try {

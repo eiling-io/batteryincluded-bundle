@@ -31,7 +31,8 @@
     },
     "autoload": {
         "psr-4": {
-            "App\\": "src/"
+            "App\\": "src/",
+            "BatteryIncludedSdkTests\\": "vendor/batteryincluded/batteryincluded-php-sdk/tests/"
         }
     },
     "autoload-dev": {
