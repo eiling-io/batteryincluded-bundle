@@ -172,6 +172,8 @@ class BatteryincludedBundle extends AbstractBundle
      */
     public function loadExtension(array $config, ContainerConfigurator $container, ContainerBuilder $builder): void
     {
+        // the sdk is located by its classes, the vendor directory is not always below the project dir (e.g. plugin test applications)
+        $builder->setParameter('batteryincluded.sdk_dir', dirname((string) (new \ReflectionClass(ApiClient::class))->getFileName(), 2));
         $container->import(__DIR__ . '/../config/services.yaml');
 
         // the demo shop renders twig templates

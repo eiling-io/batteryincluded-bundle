@@ -1,7 +1,5 @@
-# the http client chain and the api clients of the collections are registered in BatteryincludedBundle::loadExtension()
-parameters:
-    vendor_dir: '%kernel.project_dir%/vendor'
-
+# the http client chain and the api clients of the collections are registered in BatteryincludedBundle::loadExtension(),
+# batteryincluded.sdk_dir is set there as well
 services:
     _defaults:
         autowire: true
@@ -22,9 +20,9 @@ services:
             - '../src/Sync/SyncResult.php'
 
     BatteryIncludedSdk\:
-        resource : '%vendor_dir%/batteryincluded/batteryincluded-php-sdk/src'
+        resource : '%batteryincluded.sdk_dir%'
         # functions only, loaded by the composer autoloader
-        exclude: '%vendor_dir%/batteryincluded/batteryincluded-php-sdk/src/Polyfill'
+        exclude: '%batteryincluded.sdk_dir%/Polyfill'
 
     Batteryincluded\BatteryincludedBundle\Profiler\ApiDataCollector:
         tags:
