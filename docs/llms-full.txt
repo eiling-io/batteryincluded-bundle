@@ -1,7 +1,7 @@
 # BatteryIncluded Symfony Bundle – integration guide for AI agents
 
 > Everything needed to add BatteryIncluded search to a Symfony shop with `batteryincluded/batteryincluded-bundle`.
-> Follow the steps in order. Human-readable docs: https://eiling-io.github.io/batteryincluded-bundle/
+> Follow the steps in order. Human-readable docs: https://bundle.batteryincluded.eiling.io/
 > The bundle wraps the PHP SDK, its guide covers DTOs, translations and availability in depth:
 > https://eiling-io.github.io/batteryincluded-php-sdk/llms-full.txt
 

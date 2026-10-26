@@ -1,5 +1,7 @@
 title: BatteryIncluded Symfony Bundle
 description: Symfony integration of the BatteryIncluded PHP SDK – export, sync, search, Doctrine, Messenger and the web profiler.
+url: https://bundle.batteryincluded.eiling.io
+baseurl: ""
 remote_theme: just-the-docs/just-the-docs@v0.10.1
 plugins:
   - jekyll-remote-theme

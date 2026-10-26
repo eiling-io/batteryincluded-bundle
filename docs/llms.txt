@@ -4,7 +4,7 @@
 > single documents (Doctrine, Messenger), search struct controller arguments and the web profiler. PHP 8.2+, Symfony 7/8.
 
 Install with `composer require batteryincluded/batteryincluded-bundle`. For a complete integration guide in one file
-read [llms-full.txt](https://eiling-io.github.io/batteryincluded-bundle/llms-full.txt).
+read [llms-full.txt](https://bundle.batteryincluded.eiling.io/llms-full.txt).
 
 ## Docs
 

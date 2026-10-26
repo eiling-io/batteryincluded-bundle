@@ -2,7 +2,7 @@
 
 Symfony integration of the [BatteryIncluded PHP SDK](https://github.com/eiling-io/batteryincluded-php-sdk).
 
-**Documentation: https://eiling-io.github.io/batteryincluded-bundle/** – configuration, export, Doctrine, events and
+**Documentation: https://bundle.batteryincluded.eiling.io/** – configuration, export, Doctrine, events and
 extension points, search, console commands and the profiler.
 
 ## Configuration
@@ -124,7 +124,7 @@ providers deliver to every collection.
 
 The document id is the type plus the identifier from the constructor of the DTO (`PRODUCT-5`), exported as `id` in
 the document root. Content pages, FAQ entries or stores get a type of their own, see
-[own document types](https://eiling-io.github.io/batteryincluded-bundle/export#own-document-types).
+[own document types](https://bundle.batteryincluded.eiling.io/export#own-document-types).
 
 ## Single documents
 
