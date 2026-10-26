@@ -59,7 +59,7 @@ The bundle uses the sdk `dev-main`. Changes which need a new sdk feature belong 
 | Command | Content |
 |---|---|
 | `make ddev-cs` | php-cs-fixer (`.php-cs-fixer.php`, `@Symfony` and `@PSR12`), fixes the files |
-| `make ddev-phpstan` | phpstan level 5 on `src/` |
+| `make ddev-phpstan` | phpstan 2, level 5 on `src/` |
 | `make ddev-lint` | `lint:twig` for all templates of the bundle and `lint:container` of the test application |
 | `make ddev-test` | PHPUnit, unit tests plus functional tests with a minimal kernel, the api is mocked |
 | `make ddev-quality` | all of the above |
@@ -67,8 +67,19 @@ The bundle uses the sdk `dev-main`. Changes which need a new sdk feature belong 
 phpstan 2 analyses both Symfony 7 (PHP 8.2/8.3) and Symfony 8 (PHP ≥ 8.4, uses PHP 8.4 syntax). phpstan 1.x cannot
 parse Symfony 8 and reports all its classes as unknown, keep `tools/phpstan` on 2.x.
 
-The CI (`.github/workflows/php.yml`) runs code style (dry run), phpstan and PHPUnit on PHP 8.2 to 8.5. The tests never
-call the real api, try changes against a test collection in the test application as well. The tools in `tools/` are managed with
+The CI (`.github/workflows/php.yml`) runs code style (dry run) once, phpstan and PHPUnit for every entry of its
+matrix, `symfony/flex` restricts the Symfony packages with `SYMFONY_REQUIRE`:
+
+| PHP | Symfony | Why |
+|---|---|---|
+| 8.2 | 7.0 with the lowest versions of all dependencies (`--prefer-lowest`) | Lower bounds of `composer.json` |
+| 8.2, 8.3, 8.4 | 7.4 | LTS, the most common setup |
+| 8.4 | 8.0 | First Symfony 8 release |
+| 8.5 | 8.x (latest) | Upcoming changes and deprecations |
+
+phpstan is skipped for the lowest versions, the config builder of Symfony 7.0 is typed too loosely. Add new versions
+to the `include` list of the workflow. The tests never call the real api, try changes against a test collection in the
+test application as well. The tools in `tools/` are managed with
 [phive](https://phar.io) (`phive.xml`).
 
 ## Conventions

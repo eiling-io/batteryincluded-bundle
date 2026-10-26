@@ -5,66 +5,17 @@ declare(strict_types=1);
 namespace Batteryincluded\BatteryincludedBundleTests\Functional;
 
 use Batteryincluded\BatteryincludedBundle\Collection\CollectionRegistry;
+use Batteryincluded\BatteryincludedBundle\Demo\Controller\DemoController;
+use Batteryincluded\BatteryincludedBundle\Messenger\DeleteDocumentsHandler;
+use Batteryincluded\BatteryincludedBundle\Messenger\SyncDocumentsHandler;
 use Batteryincluded\BatteryincludedBundleTests\Fixtures\MockApi;
-use Batteryincluded\BatteryincludedBundleTests\Fixtures\TestKernel;
 use BatteryIncludedSdk\Presets\PresetsService;
 use BatteryIncludedSdk\Shop\BrowseService;
-use PHPUnit\Framework\TestCase;
-use Symfony\Bundle\FrameworkBundle\Console\Application;
 use Symfony\Component\Config\Definition\Exception\InvalidConfigurationException;
-use Symfony\Component\Console\Tester\ApplicationTester;
-use Symfony\Component\DependencyInjection\ContainerInterface;
-use Symfony\Component\Filesystem\Filesystem;
 use Symfony\Component\HttpFoundation\Request;
 
-class BundleTest extends TestCase
+class BundleTest extends FunctionalTestCase
 {
-    private ?TestKernel $kernel = null;
-
-    /**
-     * @var callable|null
-     */
-    private $exceptionHandler;
-
-    public static function setUpBeforeClass(): void
-    {
-        (new Filesystem())->remove(sys_get_temp_dir() . '/batteryincluded-bundle-tests');
-    }
-
-    protected function setUp(): void
-    {
-        MockApi::$requests = [];
-        $this->exceptionHandler = $this->currentExceptionHandler();
-    }
-
-    /**
-     * Kernel and console register the exception handler of the ErrorHandler component, phpunit expects the old one.
-     */
-    protected function tearDown(): void
-    {
-        $this->kernel?->shutdown();
-        for ($i = 0; $i < 10 && $this->currentExceptionHandler() !== $this->exceptionHandler; ++$i) {
-            restore_exception_handler();
-        }
-    }
-
-    private function currentExceptionHandler(): ?callable
-    {
-        $handler = set_exception_handler(null);
-        restore_exception_handler();
-
-        return $handler;
-    }
-
-    private function application(): ApplicationTester
-    {
-        $this->kernel = new TestKernel();
-        $application = new Application($this->kernel);
-        $application->setAutoExit(false);
-
-        return new ApplicationTester($application);
-    }
-
     public function testRegistersTheCollections(): void
     {
         $container = $this->container();
@@ -79,8 +30,7 @@ class BundleTest extends TestCase
 
     public function testHandlesASearchRequest(): void
     {
-        $this->kernel = new TestKernel();
-        $response = $this->kernel->handle(Request::create('https://shop.ch/search?q=laptop&per_page=5'));
+        $response = $this->bootKernel()->handle(Request::create('https://shop.ch/search?q=laptop&per_page=5'));
 
         self::assertSame(200, $response->getStatusCode(), (string) $response->getContent());
         self::assertSame(['query' => 'laptop', 'perPage' => 5, 'availability' => 'ch', 'found' => 1], json_decode((string) $response->getContent(), true));
@@ -138,14 +88,49 @@ class BundleTest extends TestCase
         $this->container(['collections' => ['default' => ['collection' => 'x', 'api_key' => 'y']]]);
     }
 
-    /**
-     * @param array<string, mixed> $config
-     */
-    private function container(array $config = []): ContainerInterface
+    public function testWritesUseTheWriteTimeout(): void
     {
-        $this->kernel = new TestKernel($config);
-        $this->kernel->boot();
+        $tester = $this->application(['write_timeout' => 123]);
 
-        return $this->kernel->getContainer()->get('test.service_container');
+        self::assertSame(0, $tester->run(['command' => 'bi:delete', 'ids' => ['PRODUCT-1'], '--force' => true]));
+        self::assertSame(0, $tester->run(['command' => 'bi:status']));
+
+        [$delete, $status] = MockApi::$requests;
+        self::assertSame('DELETE', $delete['method']);
+        self::assertSame(123.0, $delete['timeout']);
+        self::assertSame('GET', $status['method']);
+        self::assertNotSame(123.0, $status['timeout'], 'searches keep the timeout of the client');
+    }
+
+    public function testRegistersTheMessageHandlers(): void
+    {
+        $container = $this->container();
+
+        self::assertTrue($container->has(SyncDocumentsHandler::class));
+        self::assertTrue($container->has(DeleteDocumentsHandler::class));
+    }
+
+    public function testRegistersTheDemoShopOnlyWithTwig(): void
+    {
+        self::assertFalse($this->container()->has(DemoController::class));
+
+        $this->kernel?->shutdown();
+        self::assertTrue($this->bootKernel(demo: true)->getContainer()->get('test.service_container')->has(DemoController::class));
+    }
+
+    public function testDisablesTheCache(): void
+    {
+        $presets = $this->container(['cache' => ['enabled' => false]])->get(PresetsService::class);
+        $presets->getPresets();
+        $presets->getPresets();
+
+        self::assertCount(2, MockApi::$requests);
+    }
+
+    public function testRejectsAnInvalidWriteTimeout(): void
+    {
+        $this->expectException(InvalidConfigurationException::class);
+
+        $this->container(['write_timeout' => 0]);
     }
 }

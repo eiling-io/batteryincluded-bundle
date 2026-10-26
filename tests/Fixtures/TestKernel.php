@@ -8,6 +8,7 @@ use Batteryincluded\BatteryincludedBundle\BatteryincludedBundle;
 use Psr\Log\NullLogger;
 use Symfony\Bundle\FrameworkBundle\FrameworkBundle;
 use Symfony\Bundle\FrameworkBundle\Kernel\MicroKernelTrait;
+use Symfony\Bundle\TwigBundle\TwigBundle;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 use Symfony\Component\HttpKernel\Kernel;
 use Symfony\Component\Routing\Loader\Configurator\RoutingConfigurator;
@@ -22,14 +23,20 @@ class TestKernel extends Kernel
     /**
      * @param array<string, mixed> $bundleConfig merged into the default configuration of the tests
      */
-    public function __construct(private readonly array $bundleConfig = [])
-    {
+    public function __construct(
+        private readonly array $bundleConfig = [],
+        private readonly bool $demo = false,
+    ) {
         parent::__construct('test', false);
     }
 
     public function registerBundles(): iterable
     {
         yield new FrameworkBundle();
+        // the demo shop is registered with the TwigBundle only
+        if ($this->demo) {
+            yield new TwigBundle();
+        }
         yield new BatteryincludedBundle();
     }
 
@@ -40,7 +47,7 @@ class TestKernel extends Kernel
 
     public function getCacheDir(): string
     {
-        return sys_get_temp_dir() . '/batteryincluded-bundle-tests/' . md5((string) json_encode($this->bundleConfig));
+        return sys_get_temp_dir() . '/batteryincluded-bundle-tests/' . md5((string) json_encode([$this->bundleConfig, $this->demo]));
     }
 
     public function getLogDir(): string
@@ -76,5 +83,8 @@ class TestKernel extends Kernel
     protected function configureRoutes(RoutingConfigurator $routes): void
     {
         $routes->add('search', '/search')->controller(TestController::class);
+        if ($this->demo) {
+            $routes->import(dirname(__DIR__, 2) . '/config/routes/demo.yaml')->prefix('/demo');
+        }
     }
 }

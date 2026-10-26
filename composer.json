@@ -43,7 +43,8 @@
         "symfony/cache": "^7.0 | ^8.0",
         "symfony/framework-bundle": "^7.0 | ^8.0",
         "doctrine/orm": "^3.3",
-        "symfony/event-dispatcher": "^7.0 | ^8.0"
+        "symfony/event-dispatcher": "^7.0 | ^8.0",
+        "symfony/twig-bundle": "^7.0 | ^8.0"
     },
     "suggest": {
         "symfony/twig-bundle": "Renders the demo shop and the web profiler panel",

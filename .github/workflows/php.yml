@@ -7,29 +7,55 @@ on:
         branches: [ main ]
 
 jobs:
-    test:
-        strategy:
-            max-parallel: 1
-            matrix:
-                php: ['8.2', '8.3', '8.4', '8.5']
+    code-style:
         runs-on: ubuntu-latest
-
         steps:
-            - uses: actions/checkout@v2
+            - uses: actions/checkout@v4
 
             - uses: shivammathur/setup-php@v2
               with:
-                php-version: ${{ matrix.php }}
+                php-version: '8.4'
                 tools: composer
                 coverage: none
-
-            - name: Install dependencies
-              run: composer install --prefer-dist --no-progress
 
             - name: run code php-cs-fixer
               run: ./tools/php-cs-fixer fix --config=.php-cs-fixer.php --dry-run
 
+    test:
+        name: php ${{ matrix.php }}, symfony ${{ matrix.symfony }}${{ matrix.lowest && ' (lowest)' || '' }}
+        strategy:
+            fail-fast: false
+            matrix:
+                include:
+                    # lower bounds of composer.json
+                    - { php: '8.2', symfony: '7.0.*', lowest: true }
+                    # LTS
+                    - { php: '8.2', symfony: '7.4.*' }
+                    - { php: '8.3', symfony: '7.4.*' }
+                    - { php: '8.4', symfony: '7.4.*' }
+                    # first Symfony 8 release and the latest one
+                    - { php: '8.4', symfony: '8.0.*' }
+                    - { php: '8.5', symfony: '8.*' }
+        runs-on: ubuntu-latest
+        env:
+            # symfony/flex restricts all symfony/* packages to this version
+            SYMFONY_REQUIRE: ${{ matrix.symfony }}
+
+        steps:
+            - uses: actions/checkout@v4
+
+            - uses: shivammathur/setup-php@v2
+              with:
+                php-version: ${{ matrix.php }}
+                tools: composer, flex
+                coverage: none
+
+            - name: Install dependencies
+              run: composer update --no-interaction --no-progress --prefer-dist ${{ matrix.lowest && '--prefer-lowest --prefer-stable' || '' }}
+
+            # the config builder of Symfony 7.0 is typed too loosely for phpstan, the tests cover the lowest versions
             - name: run phpstan
+              if: ${{ !matrix.lowest }}
               run: ./tools/phpstan analyse -c phpstan.neon
 
             # the api is mocked, no credentials needed
