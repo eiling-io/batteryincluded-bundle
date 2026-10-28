@@ -172,6 +172,72 @@ The export takes a lock per collection (`batteryincluded-export-<name>`, one hou
 application if symfony/lock is configured, otherwise a file lock, so cron jobs on one server never overlap. Configure
 a shared store (e.g. Redis) if exports can start on several servers.
 
+## Report
+
+After the export the command prints the documents, types, batches and time per provider. `--report=<file>` writes
+the report as JSON, also for failed and cancelled exports:
+
+```json
+{
+    "collection": "default",
+    "full_import": true,
+    "dry_run": false,
+    "successful": true,
+    "error": null,
+    "started_at": "2026-10-28T03:00:00+01:00",
+    "duration": 21.4,
+    "documents": 736,
+    "types": {"BLOG": 10, "CONTENT": 6, "PRODUCT": 720},
+    "sent": 736,
+    "synced": 736,
+    "failed": [],
+    "providers": [
+        {"class": "App\\Provider\\ProductProvider", "documents": 720, "batches": 2, "time": 1.2, "types": {"PRODUCT": 720}}
+    ]
+}
+```
+
+`failed` lists the rejected documents with their error. The [`PostExportEvent`](events#postexportevent) carries the
+same report as `ExportReport`, e.g. to send it to your monitoring.
+
+## Scheduler
+
+Run the export regularly with the [Symfony Scheduler](https://symfony.com/doc/current/scheduler.html) instead of a
+cron job per server:
+
+```bash
+composer require symfony/scheduler dragonmantank/cron-expression
+```
+
+```yaml
+batteryincluded:
+    export:
+        schedule:
+            - { cron: '0 3 * * *' }                                           # nightly full import
+            - { cron: '*/15 * * * *', providers: [StockProvider] }            # stock every 15 minutes, nothing is deleted
+            - { cron: '30 3 * * *', collection: ch }
+```
+
+```bash
+bin/console messenger:consume scheduler_batteryincluded
+```
+
+Every entry adds a recurring `ExportMessage` to the schedule `batteryincluded`. The `ExportMessageHandler` runs
+`bi:export --force` with the [lock](#lock) of the command: a run which overlaps another export into the same
+collection fails instead of waiting. The output goes to the `batteryincluded` log channel, a failed export throws and
+appears in the worker log. Unknown collections stop the container build.
+
+Dispatch the message yourself to start an export from your code, e.g. an admin button:
+
+```php
+use Batteryincluded\BatteryincludedBundle\Scheduler\ExportMessage;
+
+$bus->dispatch(new ExportMessage('default'));                        // full import
+$bus->dispatch(new ExportMessage('default', ['ProductProvider']));   // products only
+```
+
+Route `ExportMessage` to an async transport, the export takes longer than a request.
+
 ## Options
 
 | Option | Default | Meaning |
@@ -181,6 +247,7 @@ a shared store (e.g. Redis) if exports can start on several servers.
 | `--batch-size`, `-b` | `export.batch_size` | Documents per request |
 | `--dry-run` | | Load and serialize only |
 | `--force`, `-f` | | Skip the confirmation, required without interaction |
+| `--report` | | Write the [report](#report) as JSON to this file |
 | `-v` | | Print every API response |
 
 Exit codes: `0` success, `1` failure, `2` invalid options.

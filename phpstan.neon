@@ -2,3 +2,5 @@ parameters:
     level: 5
     paths:
         - src/
+        # uses the BatteryIncludedAssertionsTrait, traits are analysed in the classes using them
+        - tests/Functional/AssertionsTraitTest.php

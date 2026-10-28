@@ -10,12 +10,14 @@ read [llms-full.txt](https://bundle.batteryincluded.eiling.io/llms-full.txt).
 
 - [Getting started](https://raw.githubusercontent.com/eiling-io/batteryincluded-bundle/main/docs/getting-started.md): installation, credentials, first search
 - [Configuration](https://raw.githubusercontent.com/eiling-io/batteryincluded-bundle/main/docs/configuration.md): all options, several collections, Symfony http client and write_timeout, cache, logging
-- [Export](https://raw.githubusercontent.com/eiling-io/batteryincluded-bundle/main/docs/export.md): data providers, own document types, bi:export, full import and its safety nets
+- [Export](https://raw.githubusercontent.com/eiling-io/batteryincluded-bundle/main/docs/export.md): data providers, own document types, bi:export, full import and its safety nets, JSON report, Symfony Scheduler
 - [Single documents](https://raw.githubusercontent.com/eiling-io/batteryincluded-bundle/main/docs/single-documents.md): bi:sync, bi:delete, DocumentSynchronizer, DocumentChangeQueue, Messenger
 - [Doctrine](https://raw.githubusercontent.com/eiling-io/batteryincluded-bundle/main/docs/doctrine.md): #[BatteryIncludedDocument], sync of entities after flush
-- [Events & extension points](https://raw.githubusercontent.com/eiling-io/batteryincluded-bundle/main/docs/events.md): PreExportEvent, DocumentsEvent, PostExportEvent, interfaces, attributes, services
+- [Events & extension points](https://raw.githubusercontent.com/eiling-io/batteryincluded-bundle/main/docs/events.md): PreExportEvent, DocumentsEvent, PostExportEvent, SuggestEvent, interfaces, attributes, messages, services
 - [Search in controllers](https://raw.githubusercontent.com/eiling-io/batteryincluded-bundle/main/docs/search.md): BrowseSearchStruct arguments, #[MapSearchStruct], availability
-- [Console commands](https://raw.githubusercontent.com/eiling-io/batteryincluded-bundle/main/docs/console.md): bi:status, bi:search, bi:export, bi:sync, bi:delete
+- [Suggestions & Twig](https://raw.githubusercontent.com/eiling-io/batteryincluded-bundle/main/docs/frontend.md): suggest endpoint grouped by type, Stimulus controller, DocumentUrlResolverInterface, SuggestEvent, bi_search/bi_recommendations/bi_highlights/bi_document_url
+- [Console commands](https://raw.githubusercontent.com/eiling-io/batteryincluded-bundle/main/docs/console.md): bi:status, bi:search, bi:export, bi:sync, bi:delete, bi:diff
+- [Testing your application](https://raw.githubusercontent.com/eiling-io/batteryincluded-bundle/main/docs/testing.md): in_memory_api, InMemoryApi, BatteryIncludedAssertionsTrait
 
 ## Optional
 

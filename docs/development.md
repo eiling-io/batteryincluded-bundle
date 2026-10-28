@@ -1,6 +1,6 @@
 ---
 title: Development
-nav_order: 13
+nav_order: 15
 ---
 
 # Development
@@ -39,14 +39,14 @@ The tests never call the real API:
 | `tests/Fixtures/FakeHttpClient.php` | Implements the http client of the SDK, records the requests, answers like the import endpoint or with queued responses |
 | `tests/Fixtures/Collections.php` | `CollectionRegistry` with the collections `default` and `ch` on top of a `FakeHttpClient` |
 | `tests/Fixtures/ArrayProvider.php` | Partial and collection aware data provider with generated products |
-| `tests/Fixtures/TestKernel.php`, `MockApi.php` | Minimal Symfony application, the `MockHttpClient` answers browse, presets, suggest and delete; with `demo: true` it adds the TwigBundle and the demo shop routes |
+| `tests/Fixtures/TestKernel.php`, `MockApi.php` | Minimal Symfony application with the suggest route, the `MockHttpClient` answers browse, presets, suggest and delete (`q=error` answers 500); with `demo: true` it adds the TwigBundle and the demo shop routes |
 | `tests/Functional/FunctionalTestCase.php` | Boots the `TestKernel`, `container()`, `application()` for console commands |
 | `tests/Fixtures/Entity/` | Doctrine entities for the listener tests, SQLite in memory |
 
 | Suite | Content |
 |---|---|
-| `tests/Unit/` | Http client chain, commands (`bi:export`, `bi:sync`, `bi:delete`), synchronizer, change queue, messenger handlers, Doctrine listener, value resolver, availability, profiler collector |
-| `tests/Functional/` | Configuration and container of the bundle, search request, console commands, demo shop with grouped suggestions |
+| `tests/Unit/` | Http client chain, commands (`bi:export` with report, `bi:sync`, `bi:delete`, `bi:diff`), synchronizer, change queue, messenger handlers, scheduler, Doctrine listener, value resolver, availability, profiler collector, `Suggester`, document helpers, Twig runtime, `InMemoryApi` |
+| `tests/Functional/` | Configuration and container of the bundle, search request, suggest endpoint, Twig functions, schedule, console commands, demo shop with grouped suggestions, `BatteryIncludedAssertionsTrait` in a `KernelTestCase` |
 
 The CI (`.github/workflows/php.yml`) runs phpstan and the tests for every entry of its matrix, `symfony/flex` restricts
 the Symfony packages with `SYMFONY_REQUIRE`:

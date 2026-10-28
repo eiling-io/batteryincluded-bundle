@@ -30,6 +30,7 @@ batteryincluded:
 
     http_client: ~                     # service id of a Symfony http client, null uses curl
     write_timeout: 300                 # seconds, import, update and delete calls with the Symfony http client
+    in_memory_api: false               # replaces the api in tests, see Testing your application
 
     cache:
         enabled: false
@@ -43,6 +44,13 @@ batteryincluded:
 
     export:
         batch_size: 500                # documents per request of bi:export, bi:sync and the DocumentSynchronizer
+        schedule: []                   # recurring exports, e.g. - { cron: '0 3 * * *', collection: default, providers: [] }
+
+    suggest:                           # suggest endpoint, Stimulus controller and demo shop
+        limits: { PRODUCT: 4, default: 3 }   # documents per type, 0 hides a type
+        order: [PRODUCT, CONTENT, BLOG]      # these types first, all others in the order of the api
+        completions: 5
+        min_length: 2
 
     search:
         per_page: 24                   # defaults of the BrowseSearchStruct controller argument
@@ -58,7 +66,7 @@ batteryincluded:
 ```
 
 Invalid values stop the container build: base urls have to be absolute and end with `/`, collection names have to
-match `[a-z][a-z0-9_]*`.
+match `[a-z][a-z0-9_]*`, a [scheduled export](export#scheduler) has to use a configured collection.
 
 ## Several collections
 

@@ -11,6 +11,7 @@ use Batteryincluded\BatteryincludedBundle\Event\PostExportEvent;
 use Batteryincluded\BatteryincludedBundle\Event\PreExportEvent;
 use Batteryincluded\BatteryincludedBundle\Exception\ApiException;
 use Batteryincluded\BatteryincludedBundle\Provider\DataProviderInterface;
+use Batteryincluded\BatteryincludedBundle\Sync\ExportReport;
 use Batteryincluded\BatteryincludedBundle\Sync\SyncResult;
 use BatteryIncludedSdk\Service\Response;
 use BatteryIncludedSdk\Service\SyncService;
@@ -46,6 +47,7 @@ class ExportCommand extends Command
             ->addOption('batch-size', 'b', InputOption::VALUE_REQUIRED, 'Documents per request', (string) $this->batchSize)
             ->addOption('dry-run', null, InputOption::VALUE_NONE, 'Loads and serializes all documents without sending them')
             ->addOption('force', 'f', InputOption::VALUE_NONE, 'Skips the confirmation of the full import, required without interaction')
+            ->addOption('report', null, InputOption::VALUE_REQUIRED, 'Writes the report (documents per provider and type, rejections) as json to this file')
             ->setHelp(<<<'HELP'
                 The <info>%command.name%</info> command sends the documents of all services implementing
                 <comment>DataProviderInterface</comment> within one transaction. When the last batch is committed,
@@ -55,6 +57,7 @@ class ExportCommand extends Command
                   <info>php %command.full_name% --force</info>        full import without confirmation (cron, CI)
                   <info>php %command.full_name% -p ProductProvider</info>  creates or replaces the products, keeps all other documents
                   <info>php %command.full_name% -v</info>             prints every api response
+                  <info>php %command.full_name% --force --report=var/export.json</info>  report for cron and CI logs
                 HELP);
     }
 
@@ -110,33 +113,51 @@ class ExportCommand extends Command
         }
 
         try {
-            return $this->export($io, $collection, $providers, $batchSize, $dryRun, $fullImport);
+            $report = $this->export($io, $collection, $providers, $batchSize, $dryRun, $fullImport);
         } finally {
             $lock?->release();
         }
+
+        $reportFile = $input->getOption('report');
+        if (is_string($reportFile) && $reportFile !== '') {
+            $json = json_encode($report->toArray(), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
+            if (@file_put_contents($reportFile, $json . "\n") === false) {
+                $io->warning(sprintf('The report could not be written to "%s".', $reportFile));
+            } else {
+                $io->writeln(sprintf('Report written to %s.', $reportFile), OutputInterface::VERBOSITY_VERBOSE);
+            }
+        }
+
+        return $report->successful ? Command::SUCCESS : Command::FAILURE;
     }
 
     /**
      * @param list<DataProviderInterface> $providers
      */
-    private function export(SymfonyStyle $io, string $collection, array $providers, int $batchSize, bool $dryRun, bool $fullImport): int
+    private function export(SymfonyStyle $io, string $collection, array $providers, int $batchSize, bool $dryRun, bool $fullImport): ExportReport
     {
         $result = new SyncResult();
         $start = microtime(true);
+        $startedAt = new \DateTimeImmutable();
+        /** @var array<int, array{class: string, documents: int, batches: int, time: float, types: array<string, int>}> $statistics */
+        $statistics = [];
+        $finish = function (bool $successful, ?string $error = null) use ($collection, $fullImport, $dryRun, $start, $startedAt, &$statistics, $result): ExportReport {
+            $report = new ExportReport($collection, $fullImport, $dryRun, $successful, $startedAt, microtime(true) - $start, array_values($statistics), $result, $error);
+            $this->eventDispatcher?->dispatch(new PostExportEvent($collection, $fullImport, $dryRun, $successful, $report->getDocuments(), $report->duration, $result, $error, $report));
+
+            return $report;
+        };
 
         $preExport = new PreExportEvent($collection, $providers, $fullImport, $dryRun);
         $this->eventDispatcher?->dispatch($preExport);
         if ($preExport->isCancelled()) {
             $io->error('The export was cancelled: ' . $preExport->getCancelReason());
-            $this->dispatchPostExport($collection, $fullImport, $dryRun, false, 0, $start, $result, 'Cancelled: ' . $preExport->getCancelReason());
 
-            return Command::FAILURE;
+            return $finish(false, 'Cancelled: ' . $preExport->getCancelReason());
         }
 
         $syncService = $this->collections->get($collection, SyncService::class);
         $transactionId = 'bi-export-' . date('YmdHis') . '-' . bin2hex(random_bytes(3));
-        /** @var array<int, array{class: string, documents: int, batches: int, time: float}> $statistics */
-        $statistics = [];
         $documentIds = [];
         $duplicates = [];
         // the last batch is held back and sent with the commit, so the commit never contains an extra document
@@ -150,7 +171,7 @@ class ExportCommand extends Command
                 $providerStart = microtime(true);
                 // per instance, a class can be registered more than once with different arguments
                 $key = spl_object_id($provider);
-                $statistics[$key] = ['class' => $provider::class, 'documents' => 0, 'batches' => 0, 'time' => 0.0];
+                $statistics[$key] = ['class' => $provider::class, 'documents' => 0, 'batches' => 0, 'time' => 0.0, 'types' => []];
                 $progress?->setMessage($this->shortName($provider::class));
                 $progress?->display();
 
@@ -162,6 +183,9 @@ class ExportCommand extends Command
                         continue;
                     }
                     $statistics[$key]['documents'] += count($batch);
+                    foreach ($batch as $document) {
+                        $statistics[$key]['types'][$document->getType()] = ($statistics[$key]['types'][$document->getType()] ?? 0) + 1;
+                    }
                     ++$statistics[$key]['batches'];
 
                     if ($dryRun) {
@@ -204,16 +228,15 @@ class ExportCommand extends Command
                 $fullImport && !$dryRun ? 'The transaction is not committed, the collection is unchanged.' : 'Documents sent so far are kept.',
             ]);
             $this->listRejections($io, $result);
-            $this->dispatchPostExport($collection, $fullImport, $dryRun, false, array_sum(array_column($statistics, 'documents')), $start, $result, $exception->getMessage());
 
-            return Command::FAILURE;
+            return $finish(false, $exception->getMessage());
         }
 
         $progress?->finish();
         $io->newLine(2);
         $io->table(
-            ['Provider', 'Documents', 'Batches', 'Time'],
-            array_map(fn (array $row) => [$this->shortName($row['class']), $row['documents'], $row['batches'], Helper::formatTime($row['time'])], array_values($statistics)),
+            ['Provider', 'Documents', 'Types', 'Batches', 'Time'],
+            array_map(fn (array $row) => [$this->shortName($row['class']), $row['documents'], self::formatTypes($row['types']), $row['batches'], Helper::formatTime($row['time'])], array_values($statistics)),
         );
 
         $total = array_sum(array_column($statistics, 'documents'));
@@ -222,23 +245,20 @@ class ExportCommand extends Command
                 $io->warning(sprintf('%d document ids are delivered more than once, the last one wins: %s', count($duplicates), implode(', ', array_slice(array_keys($duplicates), 0, 10))));
             }
             $io->success(sprintf('Dry run: %d documents serialized, nothing was sent.', $total));
-            $this->dispatchPostExport($collection, $fullImport, $dryRun, true, $total, $start, $result);
 
-            return Command::SUCCESS;
+            return $finish(true);
         }
 
         // only possible for the commit and without full import, every other batch is checked before the next one is sent
         if (!$result->isSuccessful()) {
             $this->listRejections($io, $result);
-            $this->dispatchPostExport($collection, $fullImport, $dryRun, false, $total, $start, $result, 'Documents were rejected');
 
-            return Command::FAILURE;
+            return $finish(false, 'Documents were rejected');
         }
 
-        $io->success(sprintf('Exported %d documents in %s.', $total, Helper::formatTime(microtime(true) - $start)));
-        $this->dispatchPostExport($collection, $fullImport, $dryRun, true, $total, $start, $result);
+        $io->success(sprintf('Exported %d documents (%s) in %s.', $total, self::formatTypes(self::sumTypes($statistics)), Helper::formatTime(microtime(true) - $start)));
 
-        return Command::SUCCESS;
+        return $finish(true);
     }
 
     /**
@@ -261,9 +281,31 @@ class ExportCommand extends Command
         $io->listing(array_map(static fn (array $failure) => $failure['id'] . ': ' . $failure['error'], array_slice($result->getFailed(), 0, 20)));
     }
 
-    private function dispatchPostExport(string $collection, bool $fullImport, bool $dryRun, bool $successful, int $documents, float $start, SyncResult $result, ?string $error = null): void
+    /**
+     * @param array<string, int> $types
+     */
+    private static function formatTypes(array $types): string
     {
-        $this->eventDispatcher?->dispatch(new PostExportEvent($collection, $fullImport, $dryRun, $successful, $documents, microtime(true) - $start, $result, $error));
+        ksort($types);
+
+        return implode(', ', array_map(static fn (string $type, int $count) => $type . ' ' . $count, array_keys($types), $types));
+    }
+
+    /**
+     * @param array<int, array{types: array<string, int>}> $statistics
+     *
+     * @return array<string, int>
+     */
+    private static function sumTypes(array $statistics): array
+    {
+        $types = [];
+        foreach ($statistics as $row) {
+            foreach ($row['types'] as $type => $count) {
+                $types[$type] = ($types[$type] ?? 0) + $count;
+            }
+        }
+
+        return $types;
     }
 
     /**

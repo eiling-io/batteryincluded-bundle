@@ -11,7 +11,7 @@ nav_order: 7
 
 ## Events
 
-The bundle dispatches three events with the Symfony event dispatcher. The class name is the event name, listen to
+The bundle dispatches four events with the Symfony event dispatcher. The class name is the event name, listen to
 them with `#[AsEventListener]`:
 
 | Event | Dispatched by | Use it to |
@@ -19,8 +19,9 @@ them with `#[AsEventListener]`:
 | [`PreExportEvent`](#preexportevent) | `bi:export`, before the first document is loaded | Cancel the export |
 | [`DocumentsEvent`](#documentsevent) | `bi:export`, `bi:sync`, `DocumentSynchronizer`, Doctrine integration, message handlers – for every batch | Enrich, replace or remove documents |
 | [`PostExportEvent`](#postexportevent) | `bi:export`, after it finished, failed or was cancelled | Clear caches, notify, monitor |
+| [`SuggestEvent`](#suggestevent) | `Suggester`: suggest endpoint and demo shop | Translate group labels, add or change fields |
 
-All three live in the namespace `Batteryincluded\BatteryincludedBundle\Event`.
+All four live in the namespace `Batteryincluded\BatteryincludedBundle\Event`.
 
 ### PreExportEvent
 
@@ -108,6 +109,7 @@ event.
 | `duration` | `float` | Seconds |
 | `result` | `SyncResult` | Sent, synced and rejected documents |
 | `error` | `?string` | Reason of the failure |
+| `report` | `?ExportReport` | Documents per provider and type, the [report](export#report) of `--report`. `toArray()`, `getTypes()`, `getDocuments()` |
 
 ```php
 use Batteryincluded\BatteryincludedBundle\Event\PostExportEvent;
@@ -130,6 +132,20 @@ final class ReportExport
 }
 ```
 
+`bi:diff` dispatches the `DocumentsEvent` with the context `export` as well, it compares what the export would send.
+
+### SuggestEvent
+
+Dispatched by the `Suggester` before the grouped suggestions are returned, see
+[Suggestions & Twig](frontend#suggestevent).
+
+| Member | Type | Content |
+|---|---|---|
+| `getResult()`, `setResult()` | `array` | `query`, `completions`, `groups` with `type`, `label` and `items`, `found` |
+| `collection` | `string` | Name of the collection |
+| `locale` | `string` | Requested locale |
+| `availability` | `?string` | Availability scope |
+
 ## Symfony events the bundle listens to
 
 | Event | Listener | What it does |
@@ -147,6 +163,7 @@ final class ReportExport
 | `Provider\DataProviderInterface` | Deliver documents to `bi:export`, tagged automatically |
 | `Provider\PartialDataProviderInterface` | Deliver single documents to `bi:sync`, Doctrine and Messenger |
 | `Provider\CollectionAwareDataProviderInterface` | Deliver only to some collections |
+| `Document\DocumentUrlResolverInterface` | Link documents in the suggestions and `bi_document_url()`, see [Suggestions & Twig](frontend#2-link-the-documents) |
 
 See [Export](export#data-providers).
 
@@ -163,6 +180,7 @@ See [Export](export#data-providers).
 |---|---|
 | `Messenger\SyncDocumentsMessage` | Creates or replaces documents |
 | `Messenger\DeleteDocumentsMessage` | Deletes documents |
+| `Scheduler\ExportMessage` | Runs `bi:export --force`, used by the [scheduler](export#scheduler) |
 
 See [Messenger](single-documents#messenger).
 
@@ -176,6 +194,10 @@ See [Messenger](single-documents#messenger).
 | `Sync\DocumentChangeQueue` | Sync and delete documents at the end of the request |
 | `Http\RequestAvailabilityResolver` | Resolve the availability scope of a request |
 | `Http\RequestFilterParser` | Read `f[...]` filters of a request |
+| `Suggest\Suggester` | Suggestions grouped by type for an own controller |
+| `Sync\CollectionComparator` | Compare providers and collection like `bi:diff`, returns a `DiffResult` |
+| `Document\DocumentUrlGenerator` | Url of a document by the `DocumentUrlResolverInterface` services |
+| `Test\InMemoryApi` | API in memory for your tests, see [Testing](testing) |
 
 All class names are relative to `Batteryincluded\BatteryincludedBundle`.
 

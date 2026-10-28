@@ -1,3 +1,7 @@
 batteryincluded_demo:
     resource: '@BatteryincludedBundle/config/routes/demo.yaml'
     prefix: /
+
+# json endpoint of the suggest Stimulus controller, used on /search
+batteryincluded_suggest:
+    resource: '@BatteryincludedBundle/config/routes/suggest.yaml'

@@ -1,6 +1,12 @@
 {
     "name": "batteryincluded/batteryincluded-bundle",
     "type": "symfony-bundle",
+    "description": "Symfony integration of the BatteryIncluded PHP SDK: export, sync, search, suggestions, Twig, Doctrine, Messenger and the web profiler",
+    "keywords": [
+        "batteryincluded",
+        "search",
+        "symfony-ux"
+    ],
     "autoload": {
         "psr-4": {
             "Batteryincluded\\BatteryincludedBundle\\": "src/"
@@ -44,7 +50,9 @@
         "symfony/framework-bundle": "^7.0 | ^8.0",
         "doctrine/orm": "^3.3",
         "symfony/event-dispatcher": "^7.0 | ^8.0",
-        "symfony/twig-bundle": "^7.0 | ^8.0"
+        "symfony/twig-bundle": "^7.0 | ^8.0",
+        "symfony/scheduler": "^7.0 | ^8.0",
+        "dragonmantank/cron-expression": "^3.4"
     },
     "suggest": {
         "symfony/twig-bundle": "Renders the demo shop and the web profiler panel",
@@ -54,6 +62,13 @@
         "symfony/messenger": "Syncs and deletes documents asynchronously with SyncDocumentsMessage and DeleteDocumentsMessage",
         "symfony/lock": "Prevents parallel runs of bi:export with the lock of the application",
         "symfony/cache": "Caches rarely changing api responses, see batteryincluded.cache",
-        "symfony/monolog-bundle": "Logs failed and slow api calls to the batteryincluded channel"
+        "symfony/monolog-bundle": "Logs failed and slow api calls to the batteryincluded channel",
+        "symfony/scheduler": "Recurring exports with batteryincluded.export.schedule, requires dragonmantank/cron-expression",
+        "symfony/stimulus-bundle": "Registers the suggest Stimulus controller (@batteryincluded/batteryincluded-bundle/suggest)"
+    },
+    "extra": {
+        "branch-alias": {
+            "dev-main": "0.1.x-dev"
+        }
     }
 }

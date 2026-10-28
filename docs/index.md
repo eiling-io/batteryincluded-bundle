@@ -28,6 +28,15 @@ public function search(BrowseSearchStruct $searchStruct, BrowseService $browseSe
 bin/console bi:export --force     # full import of all data providers
 bin/console bi:sync PRODUCT-5     # update a single document
 bin/console bi:status             # check configuration and connection
+bin/console bi:diff               # compare providers and collection
+```
+
+```twig
+<form {{ stimulus_controller('@batteryincluded/batteryincluded-bundle/suggest', {url: path('batteryincluded_suggest')}) }}>
+    <input name="q" {{ stimulus_target('@batteryincluded/batteryincluded-bundle/suggest', 'input') }}>
+</form>
+
+{% for post in bi_search('', {type: 'BLOG', per_page: 3}) %}…{% endfor %}
 ```
 
 ## What's inside
@@ -36,12 +45,14 @@ bin/console bi:status             # check configuration and connection
 |---|---|
 | [Getting started](getting-started) | Installation, credentials, first search |
 | [Configuration](configuration) | All options, several collections, Symfony http client, cache, logging |
-| [Export](export) | Data providers, own document types, `bi:export`, full import and its safety nets |
+| [Export](export) | Data providers, own document types, `bi:export`, full import and its safety nets, report, scheduler |
 | [Single documents](single-documents) | `bi:sync`, `bi:delete`, `DocumentSynchronizer`, Messenger |
 | [Doctrine](doctrine) | `#[BatteryIncludedDocument]`: sync entities after flush |
 | [Events & extension points](events) | All events, interfaces, attributes, messages and services |
 | [Search in controllers](search) | `BrowseSearchStruct` arguments, `#[MapSearchStruct]`, availability |
-| [Console commands](console) | Reference of all `bi:*` commands |
+| [Suggestions & Twig](frontend) | Suggest endpoint, Stimulus controller, document urls, `bi_search()` and more Twig functions |
+| [Console commands](console) | Reference of all `bi:*` commands, `bi:diff` |
+| [Testing your application](testing) | In-memory API and assertions for your tests |
 | [Profiler & logging](profiler) | Web profiler panel, timeline, log channel |
 | [Demo shop](demo-shop) | A complete storefront inside the bundle, suggestions grouped by document type |
 | [Test application](test-application) | The Symfony app used to develop the bundle |
@@ -61,7 +72,9 @@ Optional packages unlock more features, nothing of it is required:
 
 | Package | Feature |
 |---|---|
-| `symfony/twig-bundle` | Demo shop and profiler panel |
+| `symfony/twig-bundle` | Twig functions, demo shop and profiler panel |
+| `symfony/stimulus-bundle` | Suggest Stimulus controller with AssetMapper or Webpack Encore |
+| `symfony/scheduler` | Recurring exports |
 | `symfony/web-profiler-bundle` | API calls in the toolbar and profiler |
 | `symfony/messenger` | Asynchronous sync and delete |
 | `doctrine/doctrine-bundle` | Sync entities after flush |

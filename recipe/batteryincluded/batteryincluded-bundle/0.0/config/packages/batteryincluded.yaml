@@ -1,0 +1,16 @@
+# https://bundle.batteryincluded.eiling.io/configuration
+batteryincluded:
+    collection: '%env(BATTERYINCLUDED_COLLECTION)%'
+    api_key: '%env(BATTERYINCLUDED_API_KEY)%'
+
+    # api calls with a Symfony http client (timeouts, retries) instead of curl
+    # http_client: batteryincluded.http_client
+
+    # caches presets, highlights and recommendations
+    # cache:
+    #     enabled: true
+
+when@test:
+    batteryincluded:
+        # the tests never call the api, see BatteryIncludedAssertionsTrait
+        in_memory_api: true

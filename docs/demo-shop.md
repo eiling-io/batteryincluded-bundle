@@ -1,6 +1,6 @@
 ---
 title: Demo shop
-nav_order: 11
+nav_order: 13
 ---
 
 # Demo shop
@@ -36,10 +36,14 @@ Documents of other types are shown like products.
 
 ## Suggestions
 
-The suggestions are grouped by document type: up to four products, then up to three content pages, blog posts and
+The suggestions are grouped by document type with the `Suggester` of the bundle and its
+[`suggest` configuration](frontend#configuration): up to four products, then up to three content pages, blog posts and
 documents of any other type, each group with its own heading (the label of the type facet). The suggest endpoint
-delivers only the fields selected under Suggest in the portal, the demo takes the type from the prefix of the document
-id (`CONTENT-123`), otherwise from the root node (`_PRODUCT`, `_BLOG_i18n`, `_CONTENT_i18n`, …).
+delivers only the fields selected under Suggest in the portal, the type is taken from the prefix of the document id
+(`CONTENT-123`), otherwise from the root node (`_PRODUCT`, `_BLOG_i18n`, `_CONTENT_i18n`, …).
+
+For your shop use the [suggest endpoint and the Stimulus controller](frontend) instead, the demo endpoint renders
+for the demo templates.
 
 Select `id` there (the document id in the root, e.g. `CONTENT-123`) so a suggestion links to its detail page. Without
 the id the link searches the title within the type.

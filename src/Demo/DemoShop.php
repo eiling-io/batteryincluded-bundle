@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Batteryincluded\BatteryincludedBundle\Demo;
 
+use Batteryincluded\BatteryincludedBundle\Document\Document;
 use Batteryincluded\BatteryincludedBundle\Http\RequestFilterParser;
 use BatteryIncludedSdk\I18n\I18nResolver;
 use BatteryIncludedSdk\Shop\FacetCategoryDto;
@@ -318,7 +319,7 @@ class DemoShop implements ResetInterface
      */
     public function highlight(string $value): string
     {
-        return str_replace(['&lt;mark&gt;', '&lt;/mark&gt;'], ['<mark>', '</mark>'], $this->escape($value));
+        return Document::highlight($value);
     }
 
     /**

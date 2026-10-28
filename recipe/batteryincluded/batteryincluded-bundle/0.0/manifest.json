@@ -1,0 +1,14 @@
+{
+    "bundles": {
+        "Batteryincluded\\BatteryincludedBundle\\BatteryincludedBundle": ["all"]
+    },
+    "copy-from-recipe": {
+        "config/": "%CONFIG_DIR%/"
+    },
+    "env": {
+        "#1": "Collection and API key of the BatteryIncluded portal, set them in .env.local",
+        "BATTERYINCLUDED_COLLECTION": "",
+        "BATTERYINCLUDED_API_KEY": ""
+    },
+    "aliases": ["batteryincluded"]
+}

@@ -1,14 +1,27 @@
 {% extends 'base.html.twig' %}
 {% block body %}
-    <form>
-        <input type="search" name="q" value="{{ searchStruct.query }}">
+    {# the suggestions are positioned below the input, the form is the reference #}
+    <form style="position: relative; max-width: 40rem"
+          data-controller="batteryincluded--batteryincluded-bundle--suggest"
+          data-batteryincluded--batteryincluded-bundle--suggest-url-value="{{ path('batteryincluded_suggest') }}"
+          data-batteryincluded--batteryincluded-bundle--suggest-locale-value="{{ app.request.locale }}"
+          data-batteryincluded--batteryincluded-bundle--suggest-currency-value="EUR"
+          data-batteryincluded--batteryincluded-bundle--suggest-labels-value="{{ {PRODUCT: 'Products', CONTENT: 'Service', BLOG: 'Blog'}|json_encode }}">
+        <input type="search" name="q" value="{{ searchStruct.query }}" data-batteryincluded--batteryincluded-bundle--suggest-target="input">
         <button>Search</button>
     </form>
     <p>{{ result.found }} hits, page {{ result.page }} of {{ result.pages }}</p>
     <ol start="{{ (searchStruct.page - 1) * searchStruct.perPage + 1 }}">
         {% for hit in result.hits %}
             {% set data = hit.document['_' ~ hit.document.type] ?? {} %}
-            <li>{{ hit.document.id }}: {{ data.name ?? data.title ?? '' }}</li>
+            <li><a href="{{ bi_document_url(hit.document) }}">{{ hit.document.id }}</a>: {{ data.name ?? data.title ?? '' }}</li>
         {% endfor %}
     </ol>
+
+    <h2>Latest blog posts</h2>
+    <ul>
+        {% for document in bi_search('', {type: 'BLOG', per_page: 3}) %}
+            <li><a href="{{ bi_document_url(document) }}">{{ document._BLOG.title }}</a></li>
+        {% endfor %}
+    </ul>
 {% endblock %}

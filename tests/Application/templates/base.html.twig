@@ -5,9 +5,23 @@
         <title>{% block title %}Welcome!{% endblock %}</title>
         <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 128 128%22><text y=%221.2em%22 font-size=%2296%22>⚫️</text><text y=%221.3em%22 x=%220.2em%22 font-size=%2276%22 fill=%22%23fff%22>sf</text></svg>">
         {% block stylesheets %}
+            <link rel="stylesheet" href="/bundle-assets/suggest.css">
         {% endblock %}
 
         {% block javascripts %}
+            {# without AssetMapper: Stimulus from the cdn, the controller of the bundle from BundleAssetController #}
+            <script type="importmap">
+                {"imports": {
+                    "@hotwired/stimulus": "https://cdn.jsdelivr.net/npm/@hotwired/stimulus@3.2.2/+esm",
+                    "@batteryincluded/batteryincluded-bundle/suggest_controller.js": "/bundle-assets/suggest_controller.js"
+                }}
+            </script>
+            <script type="module">
+                import { Application } from '@hotwired/stimulus';
+                import SuggestController from '@batteryincluded/batteryincluded-bundle/suggest_controller.js';
+
+                Application.start().register('batteryincluded--batteryincluded-bundle--suggest', SuggestController);
+            </script>
         {% endblock %}
     </head>
     <body>

@@ -57,6 +57,15 @@ class StatusCommand extends Command
                 ['API key' => ApiDataCollector::maskApiKey($config['apiKey'])],
             ];
 
+            // e.g. right after the installation, the recipe adds the variables empty to .env
+            $missing = array_keys(array_filter(['collection' => $config['collection'], 'api key' => $config['apiKey']], static fn (string $value) => mb_trim($value) === ''));
+            if ($missing !== []) {
+                $rows[] = ['Status' => sprintf('<error>%s not configured</>, set BATTERYINCLUDED_COLLECTION and BATTERYINCLUDED_API_KEY in .env.local', implode(' and ', $missing))];
+                $io->definitionList(...$rows);
+                ++$failed;
+                continue;
+            }
+
             $start = microtime(true);
             try {
                 $response = $this->collections->get($name, ApiClient::class)->getJson('/documents/browse?' . http_build_query(['q' => '', 'per_page' => 1]), []);

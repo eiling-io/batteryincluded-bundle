@@ -4,8 +4,11 @@ declare(strict_types=1);
 
 namespace Batteryincluded\BatteryincludedBundle\Profiler;
 
+use Batteryincluded\BatteryincludedBundle\BatteryincludedBundle;
 use Batteryincluded\BatteryincludedBundle\Client\TraceableHttpClient;
+use Batteryincluded\BatteryincludedBundle\Collection\CollectionRegistry;
 use Composer\InstalledVersions;
+use Symfony\Component\DependencyInjection\Exception\EnvNotFoundException;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\DataCollector\DataCollector;
@@ -21,11 +24,18 @@ class ApiDataCollector extends DataCollector
     ];
 
     /**
-     * @param array<string, array{baseUrl: string, collection: string, apiKey: string}> $collections
+     * @var array<string, array{baseUrl: string, collection: string, apiKey: string}>|null
+     */
+    private ?array $resolvedCollections = null;
+
+    /**
+     * The bundle passes the registry lazily, the environment variables of the collections may be missing.
+     *
+     * @param array<string, array{baseUrl: string, collection: string, apiKey: string}>|\Closure(): CollectionRegistry $collections
      */
     public function __construct(
         private readonly TraceableHttpClient $httpClient,
-        private readonly array $collections = [],
+        private readonly array|\Closure $collections = [],
     ) {
     }
 
@@ -37,7 +47,7 @@ class ApiDataCollector extends DataCollector
             'calls' => $calls,
             'duration' => array_sum(array_column($calls, 'duration')),
             'errors' => count(array_filter($calls, static fn (array $call) => $call['isError'])),
-            'collections' => array_map(fn (array $config) => ['apiKey' => self::maskApiKey($config['apiKey'])] + $config, $this->collections),
+            'collections' => array_map(fn (array $config) => ['apiKey' => self::maskApiKey($config['apiKey'])] + $config, $this->collections()),
             'versions' => array_map(static function (string $package) {
                 if (!class_exists(InstalledVersions::class) || !InstalledVersions::isInstalled($package)) {
                     return null;
@@ -120,7 +130,7 @@ class ApiDataCollector extends DataCollector
         // the endpoint without base url and collection, e.g. `/documents/browse`
         $endpoint = $path;
         $collectionName = null;
-        foreach ($this->collections as $name => $config) {
+        foreach ($this->collections() as $name => $config) {
             $collectionPath = (string) parse_url($config['baseUrl'] . $config['collection'], PHP_URL_PATH);
             if ($collectionPath !== '' && str_starts_with($path, $collectionPath . '/')) {
                 $endpoint = mb_substr($path, mb_strlen($collectionPath));
@@ -225,6 +235,30 @@ class ApiDataCollector extends DataCollector
         [$name, $value] = array_pad(explode(':', $header, 2), 2, '');
 
         return mb_strtolower(mb_trim($name)) === self::API_KEY_HEADER ? $name . ': ' . self::maskApiKey(mb_trim($value)) : $header;
+    }
+
+    /**
+     * Configuration of the collections, a missing environment variable is shown instead of breaking the page.
+     *
+     * @return array<string, array{baseUrl: string, collection: string, apiKey: string}>
+     */
+    private function collections(): array
+    {
+        if (is_array($this->collections)) {
+            return $this->collections;
+        }
+
+        if ($this->resolvedCollections === null) {
+            $registry = ($this->collections)();
+            try {
+                $this->resolvedCollections = array_combine($registry->getNames(), array_map($registry->getConfig(...), $registry->getNames()));
+            } catch (EnvNotFoundException $exception) {
+                // the registry resolves the variables of all collections at once
+                $this->resolvedCollections = [BatteryincludedBundle::DEFAULT_COLLECTION => ['baseUrl' => '', 'collection' => $exception->getMessage(), 'apiKey' => '']];
+            }
+        }
+
+        return $this->resolvedCollections;
     }
 
     public static function maskApiKey(string $apiKey): string

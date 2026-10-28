@@ -8,8 +8,11 @@ use Batteryincluded\BatteryincludedBundle\Collection\CollectionRegistry;
 use Batteryincluded\BatteryincludedBundle\Provider\DataProviderInterface;
 use BatteryIncludedSdk\Client\ApiClient;
 use BatteryIncludedSdk\Client\HttpClientInterface;
+use BatteryIncludedSdk\Highlights\HighlightsService;
+use BatteryIncludedSdk\Recommendations\RecommendationsService;
 use BatteryIncludedSdk\Service\SyncService;
 use BatteryIncludedSdk\Shop\BrowseService;
+use BatteryIncludedSdk\Suggest\SuggestService;
 use Symfony\Component\DependencyInjection\ServiceLocator;
 
 /**
@@ -33,6 +36,9 @@ final class Collections
             $factories[$name . '|' . ApiClient::class] = $apiClient;
             $factories[$name . '|' . SyncService::class] = static fn () => new SyncService($apiClient());
             $factories[$name . '|' . BrowseService::class] = static fn () => new BrowseService($apiClient());
+            $factories[$name . '|' . SuggestService::class] = static fn () => new SuggestService($apiClient());
+            $factories[$name . '|' . RecommendationsService::class] = static fn () => new RecommendationsService($apiClient());
+            $factories[$name . '|' . HighlightsService::class] = static fn () => new HighlightsService($apiClient());
         }
 
         return new CollectionRegistry(new ServiceLocator($factories), $configs, $providers);

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Batteryincluded\BatteryincludedBundle\Event;
 
+use Batteryincluded\BatteryincludedBundle\Sync\ExportReport;
 use Batteryincluded\BatteryincludedBundle\Sync\SyncResult;
 use Symfony\Contracts\EventDispatcher\Event;
 
@@ -21,6 +22,8 @@ class PostExportEvent extends Event
         public readonly float $duration,
         public readonly SyncResult $result,
         public readonly ?string $error = null,
+        // documents per provider and type, null if the event is dispatched by own code
+        public readonly ?ExportReport $report = null,
     ) {
     }
 }

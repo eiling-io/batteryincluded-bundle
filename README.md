@@ -5,6 +5,17 @@ Symfony integration of the [BatteryIncluded PHP SDK](https://github.com/eiling-i
 **Documentation: https://bundle.batteryincluded.eiling.io/** – configuration, export, Doctrine, events and
 extension points, search, console commands and the profiler.
 
+## Installation
+
+```bash
+composer require batteryincluded/batteryincluded-bundle
+```
+
+The Flex recipe registers the bundle, adds `BATTERYINCLUDED_COLLECTION` and `BATTERYINCLUDED_API_KEY` (empty) to `.env`
+and the in-memory api to the test environment. Put the values into `.env.local` and check them with
+`bin/console bi:status`. The recipe lives in [`recipe/`](recipe/README.md) until it is merged into
+symfony/recipes-contrib.
+
 ## Configuration
 
 The bundle works without configuration file, it reads the credentials from the environment:
@@ -110,6 +121,7 @@ bin/console bi:export                    # full import, asks for confirmation
 bin/console bi:export --force            # full import without confirmation (cron, CI)
 bin/console bi:export -p ProductProvider # creates or replaces the documents of one provider, nothing is deleted
 bin/console bi:export -c ch -b 1000 -v   # collection "ch", 1000 documents per request, prints every api response
+bin/console bi:export --force --report=var/log/export.json   # summary per provider and type as json
 ```
 
 > **Warning:** the full import sends all documents in one transaction. When it is committed, **all other documents of
@@ -118,6 +130,17 @@ bin/console bi:export -c ch -b 1000 -v   # collection "ch", 1000 documents per r
 The command shows the progress and a summary per provider. It stops before the commit as soon as the api answers with
 an error or rejects documents, the collection is then unchanged. It never commits an empty transaction, and a lock
 (the `lock.factory` of the application, otherwise a file lock) prevents two exports into the same collection at once.
+
+Recurring exports run with the Symfony Scheduler (`composer require symfony/scheduler dragonmantank/cron-expression`,
+consume `scheduler_batteryincluded`):
+
+```yaml
+batteryincluded:
+    export:
+        schedule:
+            - { cron: '0 3 * * *' }                                  # nightly full import
+            - { cron: '*/15 * * * *', providers: [StockProvider] }   # nothing is deleted
+```
 
 Providers implementing `CollectionAwareDataProviderInterface` deliver only to the collections they support, all other
 providers deliver to every collection.
@@ -197,7 +220,8 @@ from your own code.
 |---|---|---|
 | `PreExportEvent` | before `bi:export` loads the first document | stop the export with `cancel($reason)`, e.g. during maintenance |
 | `DocumentsEvent` | for every batch of `bi:export`, `bi:sync`, the `DocumentSynchronizer` and the messenger handlers | enrich, replace or remove documents with `setDocuments()`; `context` is `export` or `sync` |
-| `PostExportEvent` | after `bi:export` finished, failed or was cancelled | clear caches, send a notification; contains documents, duration, `SyncResult` and error |
+| `PostExportEvent` | after `bi:export` finished, failed or was cancelled | clear caches, send a notification; contains documents, duration, `SyncResult`, error and the `ExportReport` |
+| `SuggestEvent` | before the `Suggester` returns the grouped suggestions | translate group labels, add fields |
 
 Documents removed in a `DocumentsEvent` are not sent: a full import then deletes them from the collection, a sync keeps
 the version in the collection.
@@ -250,6 +274,29 @@ batteryincluded:
 
 `RequestAvailabilityResolver::resolve($request)` returns the scope outside of controllers.
 
+## Suggestions and Twig
+
+Search-as-you-type without own JavaScript: import the suggest endpoint and use the Stimulus controller of the bundle,
+Symfony UX registers it as `@batteryincluded/batteryincluded-bundle/suggest`.
+
+```yaml
+# config/routes/batteryincluded.yaml
+batteryincluded_suggest:
+    resource: '@BatteryincludedBundle/config/routes/suggest.yaml'
+```
+
+```twig
+<form action="{{ path('search') }}" style="position: relative"
+      {{ stimulus_controller('@batteryincluded/batteryincluded-bundle/suggest', {url: path('batteryincluded_suggest'), currency: 'EUR'}) }}>
+    <input type="search" name="q" {{ stimulus_target('@batteryincluded/batteryincluded-bundle/suggest', 'input') }}>
+</form>
+```
+
+The suggestions are grouped by document type (`batteryincluded.suggest` sets limits and order), a service implementing
+`DocumentUrlResolverInterface` links them to your routes. In templates `bi_search()`, `bi_recommendations()`,
+`bi_highlights()`, `bi_document_url()` and the filter `|bi_highlight` call the api directly, see
+[Suggestions & Twig](https://bundle.batteryincluded.eiling.io/frontend).
+
 ## Console
 
 ```bash
@@ -257,9 +304,23 @@ bin/console bi:status                                   # configuration, connect
 bin/console bi:search laptop                            # searches like the shop does
 bin/console bi:search laptop -f type=PRODUCT -f _PRODUCT.price=500..900 -s _PRODUCT.price:asc -l en -a ch --facets
 bin/console bi:search laptop --json                     # raw response
+bin/console bi:diff                                     # missing and orphaned documents, nothing is changed
 ```
 
-`bi:status` exits with 1 if a collection is not reachable, e.g. for a deployment check.
+`bi:status` exits with 1 if a collection is not reachable, e.g. for a deployment check, `bi:diff` if the collection
+differs from the providers.
+
+## Tests of your application
+
+```yaml
+when@test:
+    batteryincluded:
+        in_memory_api: true   # the InMemoryApi answers all api calls
+```
+
+`BatteryIncludedAssertionsTrait` adds `addBatteryIncludedDocuments()`, `assertBatteryIncludedDocumentExists()`,
+`assertBatteryIncludedDocumentCount()` and `assertBatteryIncludedRequest()` to a `KernelTestCase` or `WebTestCase`, see
+[Testing your application](https://bundle.batteryincluded.eiling.io/testing).
 
 ## Web profiler
 

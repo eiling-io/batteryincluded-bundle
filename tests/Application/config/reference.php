@@ -700,6 +700,7 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *         base_url?: scalar|Param|null, // Defaults to the base url of the default client // Default: null
  *     }>,
  *     http_client?: scalar|Param|null, // Service id of a Symfony http client (e.g. "http_client" or a scoped client with retries), null uses curl // Default: null
+ *     in_memory_api?: bool|Param, // Replaces the api with the InMemoryApi, for the tests of your application (when@test), see BatteryIncludedAssertionsTrait // Default: false
  *     write_timeout?: float|Param, // Seconds, idle timeout of the import, update and delete calls with the Symfony http client. The commit of a full import takes longer than a search, searches keep the timeout of the client. // Default: 300
  *     cache?: bool|array{ // Caches GET responses of rarely changing endpoints
  *         enabled?: bool|Param, // Default: false
@@ -713,6 +714,17 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *     },
  *     export?: array{
  *         batch_size?: int|Param, // Default: 500
+ *         schedule?: list<array{ // Default: []
+ *             cron?: scalar|Param|null, // Cron expression, e.g. "0 3 * * *" or "@daily"
+ *             collection?: scalar|Param|null, // Default: "default"
+ *             providers?: list<scalar|Param|null>,
+ *         }>,
+ *     },
+ *     suggest?: array{ // Suggestions grouped by document type, used by the suggest endpoint, the Stimulus controller and the demo shop
+ *         limits?: array<string, int|Param>,
+ *         order?: list<scalar|Param|null>,
+ *         completions?: int|Param, // Number of query completions // Default: 5
+ *         min_length?: int|Param, // Shorter queries are not sent // Default: 2
  *     },
  *     doctrine?: bool|array{ // Syncs entities with #[BatteryIncludedDocument] after flush, requires the DoctrineBundle
  *         enabled?: bool|Param, // Default: true

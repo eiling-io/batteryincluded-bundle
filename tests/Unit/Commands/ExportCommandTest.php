@@ -12,6 +12,7 @@ use Batteryincluded\BatteryincludedBundle\Provider\DataProviderInterface;
 use Batteryincluded\BatteryincludedBundleTests\Fixtures\ArrayProvider;
 use Batteryincluded\BatteryincludedBundleTests\Fixtures\Collections;
 use Batteryincluded\BatteryincludedBundleTests\Fixtures\FakeHttpClient;
+use BatteryIncludedSdk\Dto\BlogBaseDto;
 use BatteryIncludedSdk\Service\Response;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Console\Command\Command;
@@ -187,6 +188,60 @@ class ExportCommandTest extends TestCase
         self::assertSame([], $this->http->requests);
         self::assertInstanceOf(PostExportEvent::class, $post);
         self::assertFalse($post->successful);
+    }
+
+    public function testReportPerProviderAndType(): void
+    {
+        $file = tempnam(sys_get_temp_dir(), 'bi-report');
+        $post = null;
+        $this->dispatcher->addListener(PostExportEvent::class, static function (PostExportEvent $event) use (&$post): void {
+            $post = $event;
+        });
+        $blogs = new ArrayProvider();
+        $blogs->documents = [new BlogBaseDto('1'), new BlogBaseDto('2')];
+        $tester = $this->tester([new ArrayProvider(3), $blogs]);
+
+        self::assertSame(Command::SUCCESS, $tester->execute(['--force' => true, '--report' => $file]));
+
+        self::assertMatchesRegularExpression('/ArrayProvider\s+3\s+PRODUCT 3/', $tester->getDisplay());
+        self::assertStringContainsString('Exported 5 documents (BLOG 2, PRODUCT 3)', $tester->getDisplay());
+
+        $report = json_decode((string) file_get_contents($file), true);
+        unlink($file);
+        self::assertTrue($report['successful']);
+        self::assertTrue($report['full_import']);
+        self::assertSame(5, $report['documents']);
+        self::assertSame(['BLOG' => 2, 'PRODUCT' => 3], $report['types']);
+        self::assertSame(5, $report['synced']);
+        self::assertSame([], $report['failed']);
+        self::assertSame(['PRODUCT' => 3], $report['providers'][0]['types']);
+        self::assertSame(['BLOG' => 2], $report['providers'][1]['types']);
+        self::assertNotFalse(\DateTimeImmutable::createFromFormat(\DateTimeInterface::ATOM, $report['started_at']));
+
+        self::assertInstanceOf(PostExportEvent::class, $post);
+        self::assertSame(['BLOG' => 2, 'PRODUCT' => 3], $post->report?->getTypes());
+    }
+
+    public function testReportContainsTheRejections(): void
+    {
+        $file = tempnam(sys_get_temp_dir(), 'bi-report');
+        $this->http->queue(static fn (string $url, string $method, string $data) => FakeHttpClient::importResponse($data, ['PRODUCT-2' => 'invalid price']));
+
+        self::assertSame(Command::FAILURE, $this->tester([new ArrayProvider(3)])->execute(['--force' => true, '--report' => $file]));
+
+        $report = json_decode((string) file_get_contents($file), true);
+        unlink($file);
+        self::assertFalse($report['successful']);
+        self::assertSame('Documents were rejected', $report['error']);
+        self::assertSame([['id' => 'PRODUCT-2', 'error' => 'invalid price']], $report['failed']);
+    }
+
+    public function testUnwritableReportIsAWarning(): void
+    {
+        $tester = $this->tester([new ArrayProvider(1)]);
+
+        self::assertSame(Command::SUCCESS, $tester->execute(['--force' => true, '--report' => '/does-not-exist/report.json']));
+        self::assertStringContainsString('could not be written', $tester->getDisplay());
     }
 
     /**

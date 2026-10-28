@@ -15,7 +15,20 @@ nav_order: 2
 composer require batteryincluded/batteryincluded-bundle
 ```
 
-Enable the bundle, Symfony Flex does not have a recipe for it yet:
+The Flex recipe enables the bundle and adds:
+
+| File | Content |
+|---|---|
+| `.env` | `BATTERYINCLUDED_COLLECTION` and `BATTERYINCLUDED_API_KEY`, empty, the values belong into `.env.local` |
+| `config/packages/batteryincluded.yaml` | Collection and API key from the environment, the [in-memory API](testing) in the test environment |
+| `config/routes/batteryincluded.yaml` | Suggest endpoint and demo shop, commented |
+
+Until the variables are set, every command and page works, only the API calls fail and `bi:status` reports the
+missing configuration.
+
+{: .note }
+The recipe is a contrib recipe: Flex asks before it applies it, `composer config extra.symfony.allow-contrib true`
+applies contrib recipes without asking. Without the recipe enable the bundle yourself:
 
 ```php
 // config/bundles.php

@@ -1,0 +1,14 @@
+# json endpoint of the suggestions for the `suggest` Stimulus controller, import it in your application, e.g. in
+# config/routes/batteryincluded.yaml:
+#
+# batteryincluded_suggest:
+#     resource: '@BatteryincludedBundle/config/routes/suggest.yaml'
+#
+# the collection is a route default, set `defaults: { collection: ch }` on an own route for another collection
+
+batteryincluded_suggest:
+    path: /batteryincluded/suggest
+    controller: Batteryincluded\BatteryincludedBundle\Suggest\SuggestController
+    methods: [GET]
+    defaults:
+        collection: default

@@ -25,10 +25,15 @@ php -S 127.0.0.1:8000 -t tests/Application/public
 | `src/BatteryincludedBundle.php` | Configuration tree, loads `config/services*.yaml` and registers the http client chain plus one `ApiClient` and the sdk services per collection |
 | `src/Client/` | Http client chain: `TraceableHttpClient` (profiler, stopwatch) → `CachingHttpClient` → `LoggingHttpClient` → curl or `SymfonyHttpClient` |
 | `src/Collection/CollectionRegistry.php` | Configured collections, their sdk services and data providers |
-| `src/Commands/` | `bi:export`, `bi:sync`, `bi:delete`, `bi:status`, `bi:search` |
-| `src/Sync/` | `DocumentSynchronizer` (single documents), `DocumentChangeQueue` (sent at the end of a request) and `SyncResult` |
+| `src/Commands/` | `bi:export`, `bi:sync`, `bi:delete`, `bi:status`, `bi:search`, `bi:diff` |
+| `src/Sync/` | `DocumentSynchronizer` (single documents), `DocumentChangeQueue` (sent at the end of a request), `SyncResult`, `ExportReport`, `CollectionComparator` and `DiffResult` (`bi:diff`) |
+| `src/Suggest/`, `config/routes/suggest.yaml`, `assets/` | `Suggester` (grouped suggestions), json endpoint and the Stimulus controller (`assets/dist`, no build step) |
+| `src/Document/` | Type, id and payload of api documents, `DocumentUrlResolverInterface` |
+| `src/Twig/` | `bi_search()`, `bi_recommendations()`, `bi_highlights()`, `bi_document_url()`, `\|bi_highlight` |
+| `src/Scheduler/` | Schedule `batteryincluded` and the `ExportMessage` handler |
+| `src/Test/` | `InMemoryApi` and `BatteryIncludedAssertionsTrait` for the tests of applications, part of the public api |
 | `src/Doctrine/` | `#[BatteryIncludedDocument]` and the listener, registered with the DoctrineBundle |
-| `src/Event/` | `PreExportEvent`, `DocumentsEvent`, `PostExportEvent` |
+| `src/Event/` | `PreExportEvent`, `DocumentsEvent`, `PostExportEvent`, `SuggestEvent` |
 | `src/Messenger/`, `config/services_messenger.yaml` | Messages and handlers, registered if symfony/messenger is installed |
 | `src/Http/` | `SearchStructValueResolver` (controller arguments), `MapSearchStruct`, `RequestFilterParser`, availability resolver and listener |
 | `tests/Unit/`, `tests/Functional/`, `tests/Fixtures/` | PHPUnit tests, `FakeHttpClient` and the `TestKernel` (with `MockApi`) replace the api |
@@ -37,6 +42,7 @@ php -S 127.0.0.1:8000 -t tests/Application/public
 | `src/Demo/`, `templates/demo/`, `config/demo/`, `config/routes/demo.yaml` | Demo shop |
 | `config/services.yaml` | Service definitions, the classes of the sdk are registered as services |
 | `tests/Application/` | Symfony application to try the bundle |
+| `recipe/` | Symfony Flex recipe in the layout of symfony/recipes-contrib, see `recipe/README.md` |
 
 The bundle uses the sdk `dev-main`. Changes which need a new sdk feature belong into the
 [sdk repository](https://github.com/eiling-io/batteryincluded-php-sdk) first.
@@ -59,7 +65,7 @@ The bundle uses the sdk `dev-main`. Changes which need a new sdk feature belong 
 | Command | Content |
 |---|---|
 | `make ddev-cs` | php-cs-fixer (`.php-cs-fixer.php`, `@Symfony` and `@PSR12`), fixes the files |
-| `make ddev-phpstan` | phpstan 2, level 5 on `src/` |
+| `make ddev-phpstan` | phpstan 2, level 5 on `src/` and `tests/Functional/AssertionsTraitTest.php` (traits are analysed where they are used) |
 | `make ddev-lint` | `lint:twig` for all templates of the bundle and `lint:container` of the test application |
 | `make ddev-test` | PHPUnit, unit tests plus functional tests with a minimal kernel, the api is mocked |
 | `make ddev-quality` | all of the above |

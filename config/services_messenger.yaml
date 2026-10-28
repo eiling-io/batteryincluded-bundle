@@ -7,3 +7,6 @@ services:
     Batteryincluded\BatteryincludedBundle\Messenger\:
         resource: '../src/Messenger'
         exclude: '../src/Messenger/*Message.php'
+
+    # export of the scheduler (export.schedule), dispatch an ExportMessage to start an export asynchronously
+    Batteryincluded\BatteryincludedBundle\Scheduler\ExportMessageHandler: ~

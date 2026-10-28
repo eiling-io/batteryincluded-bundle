@@ -19,8 +19,10 @@
 composer require batteryincluded/batteryincluded-bundle
 ```
 
+The Flex recipe (contrib, confirm it or set `extra.symfony.allow-contrib`) registers the bundle and adds the empty
+variables to `.env`. Without the recipe add to `config/bundles.php`:
+
 ```php
-// config/bundles.php
 Batteryincluded\BatteryincludedBundle\BatteryincludedBundle::class => ['all' => true],
 ```
 
@@ -142,9 +144,25 @@ public function search(
 
 Query parameters: `q`, `f[field][]=value`, `f[field][from]=1&f[field][till]=9`, `sort`, `page`, `per_page`. The
 locale is the request locale. `result.hits[].document._PRODUCT` holds the resolved fields, `result.getFacets()` the
-facets, `result.found` the number of hits. For search-as-you-type use a `SuggestSearchStruct` argument with
-`SuggestService::suggestWithFilter()`. Suggested documents contain only the fields selected under Suggest in the
-backend: select `id` (document id, e.g. `PRODUCT-5`) to link them, the prefix of the id is the type.
+facets, `result.found` the number of hits.
+
+Search-as-you-type: import `@BatteryincludedBundle/config/routes/suggest.yaml` (`GET /batteryincluded/suggest?q=`,
+suggestions grouped by type) and use the Stimulus controller of the bundle (Symfony UX registers it):
+
+```twig
+<form action="{{ path('search') }}" style="position: relative"
+      {{ stimulus_controller('@batteryincluded/batteryincluded-bundle/suggest', {url: path('batteryincluded_suggest'), locale: app.request.locale, currency: 'EUR'}) }}>
+    <input type="search" name="q" {{ stimulus_target('@batteryincluded/batteryincluded-bundle/suggest', 'input') }}>
+</form>
+```
+
+Implement `Batteryincluded\BatteryincludedBundle\Document\DocumentUrlResolverInterface::resolve($id, $type, $data)` to
+link the suggested documents to your routes (`$id` = `PRODUCT-5`). Suggested documents contain only the fields
+selected under Suggest in the backend: select `id`, the title and optionally `imageUrl`, `price`, `teaser`.
+
+Twig (with TwigBundle): `bi_search(query, {type, filters, sort, per_page})`, `bi_recommendations('PRODUCT-5', 'together')`,
+`bi_highlights()`, `bi_document_url(document)`, filter `|bi_highlight`. Failed calls return an empty result and are
+logged (thrown in debug).
 
 Prices per country: configure the availability scope, it is stored in the request attribute `_batteryincluded_availability`:
 
@@ -172,15 +190,41 @@ framework:
                 retry_failed: { max_retries: 2 }
 ```
 
-Failed and slow calls are logged to the `batteryincluded` channel. Schedule `bin/console bi:export --force` (e.g.
-nightly) as safety net next to the incremental sync.
+Failed and slow calls are logged to the `batteryincluded` channel. Schedule a full import (e.g. nightly) as safety
+net next to the incremental sync, with cron (`bin/console bi:export --force --report=var/log/export.json`) or the
+Symfony Scheduler (`composer require symfony/scheduler dragonmantank/cron-expression`, then consume
+`scheduler_batteryincluded`):
+
+```yaml
+batteryincluded:
+    export:
+        schedule:
+            - { cron: '0 3 * * *' }
+```
+
+`bin/console bi:diff` compares providers and collection without changing anything and exits with 1 on differences,
+e.g. as nightly check.
 
 ## 7. Hooks
 
 - `PreExportEvent`: `cancel($reason)` stops `bi:export`.
 - `DocumentsEvent`: every batch of export and sync, `getDocuments()` / `setDocuments()` to enrich or filter; removed
   documents are deleted by a full import.
-- `PostExportEvent`: `successful`, `documents`, `duration`, `result`, `error` after the export.
+- `PostExportEvent`: `successful`, `documents`, `duration`, `result`, `error`, `report` (per provider and type) after
+  the export.
+- `SuggestEvent`: `getResult()` / `setResult()` to translate group labels or add fields to the suggestions.
+
+## Tests of the application
+
+```yaml
+when@test:
+    batteryincluded:
+        in_memory_api: true
+```
+
+Use `Batteryincluded\BatteryincludedBundle\Test\BatteryIncludedAssertionsTrait` in a `KernelTestCase`/`WebTestCase`:
+`addBatteryIncludedDocuments([...])` as fixtures, `assertBatteryIncludedDocumentExists('PRODUCT-5')`,
+`assertBatteryIncludedDocumentCount(3, 'PRODUCT')`, `assertBatteryIncludedRequest('POST', '/documents/import')`.
 
 ## 8. Verification checklist
 
@@ -192,4 +236,6 @@ nightly) as safety net next to the incremental sync.
    the change.
 6. The search page shows hits, filters, sorting and pagination; the profiler panel shows one browse call without
    errors.
-7. No API key in committed files, templates or JavaScript.
+7. The suggestions open while typing, grouped by type, and link to the detail pages.
+8. `bin/console bi:diff` exits with 0 a few seconds after the export.
+9. No API key in committed files, templates or JavaScript.

@@ -1,0 +1,6 @@
+  * Set <fg=green>BATTERYINCLUDED_COLLECTION</> and <fg=green>BATTERYINCLUDED_API_KEY</> in
+    <comment>.env.local</comment>, check the connection with <comment>php bin/console bi:status</>
+
+  * Implement a <fg=green>DataProviderInterface</> and export your catalog with <comment>php bin/console bi:export</>
+
+  * Read the documentation at <comment>https://bundle.batteryincluded.eiling.io/</>

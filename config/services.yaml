@@ -13,11 +13,16 @@ services:
             - '../src/Collection'
             - '../src/Demo'
             - '../src/Doctrine'
+            - '../src/Document/Document.php'
             - '../src/Event'
             - '../src/Exception'
             - '../src/Http/Attribute'
             - '../src/Messenger'
+            - '../src/Scheduler'
+            - '../src/Sync/DiffResult.php'
+            - '../src/Sync/ExportReport.php'
             - '../src/Sync/SyncResult.php'
+            - '../src/Test'
 
     BatteryIncludedSdk\:
         resource : '%batteryincluded.sdk_dir%'
@@ -41,3 +46,26 @@ services:
         arguments:
             $batchSize: '%batteryincluded.export.batch_size%'
             $eventDispatcher: '@?event_dispatcher'
+
+    Batteryincluded\BatteryincludedBundle\Sync\CollectionComparator:
+        arguments:
+            $batchSize: '%batteryincluded.export.batch_size%'
+            $eventDispatcher: '@?event_dispatcher'
+
+    # the suggest configuration is set in BatteryincludedBundle::loadExtension()
+    Batteryincluded\BatteryincludedBundle\Suggest\Suggester:
+        arguments:
+            $eventDispatcher: '@?event_dispatcher'
+
+    Batteryincluded\BatteryincludedBundle\Suggest\SuggestController:
+        public: true
+        tags: ['controller.service_arguments']
+
+    Batteryincluded\BatteryincludedBundle\Document\DocumentUrlGenerator:
+        arguments:
+            $resolvers: !tagged_iterator batteryincluded.document_url_resolver
+
+    Batteryincluded\BatteryincludedBundle\Twig\BatteryIncludedRuntime:
+        arguments:
+            $requestStack: '@?request_stack'
+            $debug: '%kernel.debug%'

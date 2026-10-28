@@ -83,6 +83,7 @@ class TestKernel extends Kernel
     protected function configureRoutes(RoutingConfigurator $routes): void
     {
         $routes->add('search', '/search')->controller(TestController::class);
+        $routes->import(dirname(__DIR__, 2) . '/config/routes/suggest.yaml');
         if ($this->demo) {
             $routes->import(dirname(__DIR__, 2) . '/config/routes/demo.yaml')->prefix('/demo');
         }

@@ -1,6 +1,6 @@
 ---
 title: Console commands
-nav_order: 9
+nav_order: 10
 ---
 
 # Console commands
@@ -54,7 +54,11 @@ Full import of all [data providers](export). See [Export](export#options) for al
 bin/console bi:export --dry-run
 bin/console bi:export --force
 bin/console bi:export -p ProductProvider
+bin/console bi:export --force --report=var/log/export.json
 ```
+
+The command prints a table per provider with the documents per type. `--report` writes the same as JSON, e.g. for
+cron and CI logs, see [Export](export#report).
 
 ## bi:sync
 
@@ -81,10 +85,50 @@ bin/console bi:delete PRODUCT-5 --force
 
 Asks for confirmation, `--force` is required without interaction. Reports ids that did not exist.
 
+## bi:diff
+
+Compares the documents of the data providers with the collection, nothing is changed. Lists the ids which are
+**missing** in the collection (e.g. after a failed sync) and the **orphaned** ids no provider delivers anymore
+(e.g. deleted products).
+
+```bash
+bin/console bi:diff
+bin/console bi:diff -t PRODUCT -l 0
+bin/console bi:diff --format=json
+```
+
+```
+ --------- ----------- ------------ --------- ----------
+  Type      Providers   Collection   Missing   Orphaned
+ --------- ----------- ------------ --------- ----------
+  BLOG      10          10           0         0
+  PRODUCT   720         719          1         0
+ --------- ----------- ------------ --------- ----------
+
+Missing in the collection
+-------------------------
+
+PRODUCT-17
+```
+
+| Option | Default | Meaning |
+|---|---|---|
+| `--type`, `-t` | all | Compares only this type, repeatable |
+| `--limit`, `-l` | 20 | Listed ids per difference, `0` lists all |
+| `--format` | `txt` | `json` for monitoring: `consistent`, counts per type, `missing`, `orphaned` |
+
+Exits with `1` if there are differences: use it as a nightly check and fix them with `bi:sync <ids>`, `bi:delete <ids>`
+or a full import. The providers are read like by `bi:export`, including the [`DocumentsEvent`](events#documentsevent)
+listeners, the collection is read with the browse endpoint (250 ids per request).
+
+{: .note }
+The collection needs a few seconds after an export until it contains all documents, run `bi:diff` not directly
+afterwards. If the API delivers fewer ids than it found, the command warns: the orphaned ids are incomplete then.
+
 ## Exit codes
 
 | Code | Meaning |
 |---|---|
 | `0` | Success |
-| `1` | Failure: API error, rejected documents, cancelled, confirmation declined |
+| `1` | Failure: API error, rejected documents, cancelled, confirmation declined, differences of `bi:diff` |
 | `2` | Invalid options, e.g. unknown collection or provider |

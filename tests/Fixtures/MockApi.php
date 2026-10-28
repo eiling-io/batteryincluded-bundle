@@ -30,7 +30,10 @@ class MockApi
 
         $path = (string) parse_url($url, PHP_URL_PATH);
 
+        parse_str((string) parse_url($url, PHP_URL_QUERY), $query);
+
         return match (true) {
+            ($query['q'] ?? null) === 'error' => new MockResponse('{"message":"internal error"}', ['http_code' => 500]),
             str_ends_with($path, '/documents/browse') => new MockResponse((string) json_encode([
                 'found' => 1,
                 'out_of' => 3,

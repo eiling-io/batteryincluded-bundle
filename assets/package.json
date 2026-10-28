@@ -1,0 +1,27 @@
+{
+    "name": "@batteryincluded/batteryincluded-bundle",
+    "description": "Suggestions of BatteryIncluded grouped by document type",
+    "version": "1.0.0",
+    "license": "MIT",
+    "type": "module",
+    "main": "dist/suggest_controller.js",
+    "symfony": {
+        "controllers": {
+            "suggest": {
+                "main": "dist/suggest_controller.js",
+                "webpackMode": "eager",
+                "fetch": "lazy",
+                "enabled": true,
+                "autoimport": {
+                    "@batteryincluded/batteryincluded-bundle/dist/suggest.css": true
+                }
+            }
+        },
+        "importmap": {
+            "@hotwired/stimulus": "^3.0.0"
+        }
+    },
+    "peerDependencies": {
+        "@hotwired/stimulus": "^3.0.0"
+    }
+}

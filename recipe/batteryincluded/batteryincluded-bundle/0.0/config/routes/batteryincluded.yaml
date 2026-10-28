@@ -1,0 +1,9 @@
+# json endpoint of the suggest Stimulus controller, see https://bundle.batteryincluded.eiling.io/frontend
+#batteryincluded_suggest:
+#    resource: '@BatteryincludedBundle/config/routes/suggest.yaml'
+
+# demo shop with the data of your collection, do not enable it in production
+#when@dev:
+#    batteryincluded_demo:
+#        resource: '@BatteryincludedBundle/config/routes/demo.yaml'
+#        prefix: /batteryincluded-demo

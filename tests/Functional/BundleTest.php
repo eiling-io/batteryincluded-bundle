@@ -4,14 +4,22 @@ declare(strict_types=1);
 
 namespace Batteryincluded\BatteryincludedBundleTests\Functional;
 
+use Batteryincluded\BatteryincludedBundle\Client\TraceableHttpClient;
 use Batteryincluded\BatteryincludedBundle\Collection\CollectionRegistry;
 use Batteryincluded\BatteryincludedBundle\Demo\Controller\DemoController;
 use Batteryincluded\BatteryincludedBundle\Messenger\DeleteDocumentsHandler;
 use Batteryincluded\BatteryincludedBundle\Messenger\SyncDocumentsHandler;
+use Batteryincluded\BatteryincludedBundle\Profiler\ApiDataCollector;
+use Batteryincluded\BatteryincludedBundle\Scheduler\ExportMessageHandler;
+use Batteryincluded\BatteryincludedBundle\Scheduler\ExportScheduleProvider;
+use Batteryincluded\BatteryincludedBundle\Sync\DocumentChangeQueue;
+use Batteryincluded\BatteryincludedBundle\Test\InMemoryApi;
 use Batteryincluded\BatteryincludedBundleTests\Fixtures\MockApi;
 use BatteryIncludedSdk\Presets\PresetsService;
+use BatteryIncludedSdk\Shop\BrowseSearchStruct;
 use BatteryIncludedSdk\Shop\BrowseService;
 use Symfony\Component\Config\Definition\Exception\InvalidConfigurationException;
+use Symfony\Component\DependencyInjection\Exception\EnvNotFoundException;
 use Symfony\Component\HttpFoundation\Request;
 
 class BundleTest extends FunctionalTestCase
@@ -50,6 +58,21 @@ class BundleTest extends FunctionalTestCase
         $presets->getPresets();
 
         self::assertCount(1, MockApi::$requests);
+    }
+
+    public function testStatusCommandReportsEmptyCredentials(): void
+    {
+        // like after the installation, the recipe adds the variables empty to .env
+        $_SERVER['BATTERYINCLUDED_TEST_EMPTY'] = '';
+        try {
+            $tester = $this->application(['api_key' => '%env(BATTERYINCLUDED_TEST_EMPTY)%']);
+
+            self::assertSame(1, $tester->run(['command' => 'bi:status', '-c' => 'default']));
+            self::assertStringContainsString('api key not configured', $tester->getDisplay());
+            self::assertSame([], MockApi::$requests);
+        } finally {
+            unset($_SERVER['BATTERYINCLUDED_TEST_EMPTY']);
+        }
     }
 
     public function testStatusCommand(): void
@@ -132,5 +155,80 @@ class BundleTest extends FunctionalTestCase
         $this->expectException(InvalidConfigurationException::class);
 
         $this->container(['write_timeout' => 0]);
+    }
+
+    public function testRegistersTheTwigFunctionsWithTwig(): void
+    {
+        $twig = $this->bootKernel(demo: true)->getContainer()->get('test.service_container')->get('twig');
+        $html = $twig->createTemplate("{% for document in bi_search('laptop', {per_page: 1}) %}{{ document._PRODUCT.name }}{% endfor %}|{{ '<mark>a</mark><b>'|bi_highlight }}")->render();
+
+        self::assertSame('Laptop|<mark>a</mark>&lt;b&gt;', $html);
+        self::assertStringContainsString('/documents/browse?q=laptop', MockApi::$requests[0]['url']);
+    }
+
+    public function testRegistersTheExportSchedule(): void
+    {
+        $container = $this->container(['export' => ['schedule' => [
+            ['cron' => '0 3 * * *'],
+            ['cron' => '@hourly', 'collection' => 'ch', 'providers' => ['ProductProvider']],
+        ]]]);
+
+        $provider = $container->get(ExportScheduleProvider::class);
+        self::assertInstanceOf(ExportScheduleProvider::class, $provider);
+        self::assertCount(2, $provider->getSchedule()->getRecurringMessages());
+        self::assertTrue($container->has(ExportMessageHandler::class));
+    }
+
+    public function testRegistersNoScheduleByDefault(): void
+    {
+        self::assertFalse($this->container()->has(ExportScheduleProvider::class));
+    }
+
+    public function testRejectsAScheduleOfAnUnknownCollection(): void
+    {
+        $this->expectException(\LogicException::class);
+        $this->expectExceptionMessage('unknown collection "at"');
+
+        $this->container(['export' => ['schedule' => [['cron' => '@daily', 'collection' => 'at']]]]);
+    }
+
+    public function testDiffCommand(): void
+    {
+        $tester = $this->application();
+
+        self::assertSame(1, $tester->run(['command' => 'bi:diff', '--format' => 'json']));
+        // MockApi delivers PRODUCT-1, there are no providers
+        self::assertSame(['PRODUCT-1'], json_decode($tester->getDisplay(), true)['orphaned']);
+    }
+
+    public function testReplacesTheApiWithTheInMemoryApi(): void
+    {
+        $container = $this->container(['in_memory_api' => true]);
+        $container->get(InMemoryApi::class)->addDocuments('customer.test', [['id' => 'PRODUCT-5', 'type' => 'PRODUCT', '_PRODUCT' => ['name' => 'Tablet']]]);
+
+        $response = $container->get(BrowseService::class)->browse(new BrowseSearchStruct());
+
+        self::assertSame(1, $response->getFound());
+        self::assertSame([], MockApi::$requests);
+    }
+
+    public function testMissingEnvironmentVariablesBreakOnlyTheApiCalls(): void
+    {
+        $kernel = $this->bootKernel(['collection' => '%env(BATTERYINCLUDED_TEST_MISSING)%']);
+        $container = $kernel->getContainer()->get('test.service_container');
+
+        // every request and command instantiates the DocumentChangeQueue as listener
+        $response = $kernel->handle(Request::create('https://shop.test/unknown'));
+        $kernel->terminate(Request::create('https://shop.test/unknown'), $response);
+        self::assertInstanceOf(DocumentChangeQueue::class, $container->get(DocumentChangeQueue::class));
+
+        // the profiler shows the missing variable instead of breaking the page
+        // without WebProfilerBundle the collector is removed, it gets the registry like the bundle configures it
+        $collector = new ApiDataCollector($container->get(TraceableHttpClient::class), static fn () => $container->get(CollectionRegistry::class));
+        $collector->collect(Request::create('/'), $response);
+        self::assertStringContainsString('BATTERYINCLUDED_TEST_MISSING', $collector->getCollections()['default']['collection']);
+
+        $this->expectException(EnvNotFoundException::class);
+        $container->get(CollectionRegistry::class)->getConfig('default');
     }
 }

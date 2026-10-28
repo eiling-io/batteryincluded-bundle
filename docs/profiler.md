@@ -1,6 +1,6 @@
 ---
 title: Profiler & logging
-nav_order: 10
+nav_order: 12
 ---
 
 # Profiler & logging
