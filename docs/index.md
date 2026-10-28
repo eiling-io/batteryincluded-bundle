@@ -31,6 +31,7 @@ bin/console bi:status             # check configuration and connection
 bin/console bi:diff               # compare providers and collection
 ```
 
+{% raw %}
 ```twig
 <form {{ stimulus_controller('@batteryincluded/batteryincluded-bundle/suggest', {url: path('batteryincluded_suggest')}) }}>
     <input name="q" {{ stimulus_target('@batteryincluded/batteryincluded-bundle/suggest', 'input') }}>
@@ -38,6 +39,7 @@ bin/console bi:diff               # compare providers and collection
 
 {% for post in bi_search('', {type: 'BLOG', per_page: 3}) %}…{% endfor %}
 ```
+{% endraw %}
 
 ## What's inside
 

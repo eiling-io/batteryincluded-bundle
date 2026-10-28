@@ -90,6 +90,7 @@ Without a resolver the `url` field of the document is used (e.g. the content pag
 The controller lives in `assets/dist/suggest_controller.js` of the bundle. With Symfony UX (StimulusBundle and
 AssetMapper or Webpack Encore) Flex registers it in `assets/controllers.json` as `@batteryincluded/batteryincluded-bundle/suggest`:
 
+{% raw %}
 ```twig
 <form action="{{ path('search') }}" style="position: relative"
       {{ stimulus_controller('@batteryincluded/batteryincluded-bundle/suggest', {
@@ -102,6 +103,7 @@ AssetMapper or Webpack Encore) Flex registers it in `assets/controllers.json` as
     <input type="search" name="q" {{ stimulus_target('@batteryincluded/batteryincluded-bundle/suggest', 'input') }}>
 </form>
 ```
+{% endraw %}
 
 Without Symfony UX register it yourself, the identifier is `batteryincluded--batteryincluded-bundle--suggest`:
 
@@ -181,6 +183,7 @@ $result = $suggester->suggest($query, $request->getLocale(), $availability, 'def
 
 Available as soon as the TwigBundle is enabled. Locale and availability default to the current request.
 
+{% raw %}
 ```twig
 {# "similar" blog posts in the sidebar #}
 {% for document in bi_search('', {type: 'BLOG', sort: '_BLOG.date:desc', per_page: 3}) %}
@@ -195,9 +198,10 @@ Available as soon as the TwigBundle is enabled. Locale and availability default 
 {# searches maintained in the backend #}
 {% for search in bi_highlights().searches %}…{% endfor %}
 
-{# highlighted api values, escaped except <mark> #}
-{{ hit.highlight.name|bi_highlight }}
+{# highlighted api values (suggestions, raw hits), escaped except <mark> #}
+{{ highlightedTitle|bi_highlight }}
 ```
+{% endraw %}
 
 | Function | Returns |
 |---|---|

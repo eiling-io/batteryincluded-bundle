@@ -69,3 +69,9 @@ services:
         arguments:
             $requestStack: '@?request_stack'
             $debug: '%kernel.debug%'
+
+    # the queue listens to every request and command, the synchronizer (and the environment variables of the
+    # collections) is created only when changes are sent, commands like cache:clear work without credentials
+    Batteryincluded\BatteryincludedBundle\Sync\DocumentChangeQueue:
+        arguments:
+            $synchronizer: !service_closure '@Batteryincluded\BatteryincludedBundle\Sync\DocumentSynchronizer'

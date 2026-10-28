@@ -34,8 +34,14 @@ class DocumentChangeQueue implements ResetInterface
      */
     private array $changes = [];
 
+    /**
+     * @param DocumentSynchronizer|\Closure(): DocumentSynchronizer $synchronizer the bundle passes a closure: the queue
+     *                                                                           listens to every request and command, the
+     *                                                                           environment variables of the collections
+     *                                                                           are resolved only when changes are sent
+     */
     public function __construct(
-        private readonly DocumentSynchronizer $synchronizer,
+        private readonly DocumentSynchronizer|\Closure $synchronizer,
         private readonly ?MessageBusInterface $messageBus = null,
         private readonly ?LoggerInterface $logger = null,
     ) {
@@ -116,13 +122,14 @@ class DocumentChangeQueue implements ResetInterface
             return;
         }
 
+        $synchronizer = $this->synchronizer instanceof \Closure ? ($this->synchronizer)() : $this->synchronizer;
         if ($action === self::DELETE) {
-            $this->synchronizer->delete($ids, $collection);
+            $synchronizer->delete($ids, $collection);
 
             return;
         }
 
-        $result = $this->synchronizer->syncByIds($ids, $collection, $deleteMissing);
+        $result = $synchronizer->syncByIds($ids, $collection, $deleteMissing);
         if (!$result->isSuccessful()) {
             $this->logger?->error('BatteryIncluded rejected documents: {failed}', ['failed' => json_encode($result->getFailed()), 'collection' => $collection]);
         }

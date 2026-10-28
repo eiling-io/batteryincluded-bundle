@@ -249,11 +249,11 @@ class ApiDataCollector extends DataCollector
         }
 
         if ($this->resolvedCollections === null) {
-            $registry = ($this->collections)();
             try {
+                $registry = ($this->collections)();
                 $this->resolvedCollections = array_combine($registry->getNames(), array_map($registry->getConfig(...), $registry->getNames()));
             } catch (EnvNotFoundException $exception) {
-                // the registry resolves the variables of all collections at once
+                // the registry resolves the variables of all collections when it is created
                 $this->resolvedCollections = [BatteryincludedBundle::DEFAULT_COLLECTION => ['baseUrl' => '', 'collection' => $exception->getMessage(), 'apiKey' => '']];
             }
         }

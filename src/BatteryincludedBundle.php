@@ -394,10 +394,7 @@ class BatteryincludedBundle extends AbstractBundle
             $collectionConfig[$name] = ['baseUrl' => $collection['base_url'], 'collection' => $collection['collection'], 'apiKey' => $collection['api_key']];
         }
 
-        // lazy: the DocumentChangeQueue listens to every request and command, the environment variables of the
-        // collections are only resolved when a collection is used, commands like cache:clear work without them
         $builder->register(CollectionRegistry::class, CollectionRegistry::class)
-            ->setLazy(true)
             ->setArgument('$locator', new ServiceLocatorArgument($locator))
             ->setArgument('$collections', $collectionConfig)
             ->setArgument('$providers', new TaggedIteratorArgument(DataProviderInterface::class));
