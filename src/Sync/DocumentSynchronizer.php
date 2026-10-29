@@ -10,6 +10,7 @@ use Batteryincluded\BatteryincludedBundle\Event\DocumentsEvent;
 use Batteryincluded\BatteryincludedBundle\Exception\ApiException;
 use Batteryincluded\BatteryincludedBundle\Provider\PartialDataProviderInterface;
 use BatteryIncludedSdk\Dto\AbstractDto;
+use BatteryIncludedSdk\Exception\InvalidDocumentException;
 use BatteryIncludedSdk\Service\SyncService;
 use Symfony\Contracts\EventDispatcher\EventDispatcherInterface;
 
@@ -62,6 +63,7 @@ class DocumentSynchronizer
      * @param bool         $deleteMissing ids without document (e.g. deactivated products) are deleted from the collection
      *
      * @throws ApiException
+     * @throws InvalidDocumentException
      */
     public function syncByIds(array $ids, string $collection = BatteryincludedBundle::DEFAULT_COLLECTION, bool $deleteMissing = false): SyncResult
     {
@@ -82,6 +84,7 @@ class DocumentSynchronizer
      * @param iterable<AbstractDto> $documents
      *
      * @throws ApiException
+     * @throws InvalidDocumentException
      */
     public function sync(iterable $documents, string $collection = BatteryincludedBundle::DEFAULT_COLLECTION): SyncResult
     {
@@ -121,6 +124,8 @@ class DocumentSynchronizer
 
     /**
      * @param list<AbstractDto> $batch
+     *
+     * @throws InvalidDocumentException
      */
     private function sendBatch(SyncService $syncService, SyncResult $result, array $batch, string $collection): void
     {

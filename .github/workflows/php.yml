@@ -40,6 +40,8 @@ jobs:
         env:
             # symfony/flex restricts all symfony/* packages to this version
             SYMFONY_REQUIRE: ${{ matrix.symfony }}
+            # the unmaintained branches (e.g. 7.0, 8.0) have security advisories, composer would refuse to install them
+            COMPOSER_NO_SECURITY_BLOCKING: 1
 
         steps:
             - uses: actions/checkout@v5

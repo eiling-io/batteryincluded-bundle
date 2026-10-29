@@ -212,5 +212,7 @@ All class names are relative to `Batteryincluded\BatteryincludedBundle`.
 | Exception | Thrown when |
 |---|---|
 | `Exception\ApiException` | The API answers with an error status, `getResponse()` returns the response |
+| `BatteryIncludedSdk\Exception\NetworkException` | The API cannot be reached: DNS, connection, TLS or timeout |
+| `BatteryIncludedSdk\Exception\InvalidDocumentException` | A document cannot be encoded as JSON, e.g. a price of `NAN` |
 | `InvalidArgumentException` | Unknown collection name |
 | `LogicException` | Single documents are requested but no provider implements `PartialDataProviderInterface` |

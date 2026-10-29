@@ -57,7 +57,8 @@ The bundle uses the sdk `dev-main`. Changes which need a new sdk feature belong 
    make ddev-quality   # code style, phpstan, twig and container lint
    ```
 
-4. Update the documentation (`README.md`, `docs/`) if the behaviour changes.
+4. Update the documentation (`README.md`, `docs/`) if the behaviour changes and add an entry under `Unreleased` in
+   `CHANGELOG.md`.
 5. Open a pull request against `main` and describe how you tested the change.
 
 ## Checks

@@ -702,6 +702,10 @@ use Symfony\Component\Config\Loader\ParamConfigurator as Param;
  *     http_client?: scalar|Param|null, // Service id of a Symfony http client (e.g. "http_client" or a scoped client with retries), null uses curl // Default: null
  *     in_memory_api?: bool|Param, // Replaces the api with the InMemoryApi, for the tests of your application (when@test), see BatteryIncludedAssertionsTrait // Default: false
  *     write_timeout?: float|Param, // Seconds, idle timeout of the import, update and delete calls with the Symfony http client. The commit of a full import takes longer than a search, searches keep the timeout of the client. // Default: 300
+ *     curl?: array{ // Timeouts of curl, without http_client. Imports, updates and deletes have no limit, the commit of a full import waits for indexing.
+ *         timeout?: float|Param, // Seconds for a search, suggestion or recommendation, 0 for no limit // Default: 10
+ *         connect_timeout?: float|Param, // Seconds to establish the connection, 0 for no limit // Default: 5
+ *     },
  *     cache?: bool|array{ // Caches GET responses of rarely changing endpoints
  *         enabled?: bool|Param, // Default: false
  *         pool?: scalar|Param|null, // Default: "cache.app"

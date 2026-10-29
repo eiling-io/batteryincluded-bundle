@@ -113,8 +113,8 @@ class InMemoryApiTest extends TestCase
 
     public function testUnknownEndpoint(): void
     {
-        self::assertSame(404, $this->apiClient->getJson('/documents/unknown', [])->getStatusCode());
-        self::assertSame('[]', $this->apiClient->getJson('/documents/recommendations?id=PRODUCT-1', [])->getRawResponse());
+        self::assertSame(404, $this->apiClient->getJson('/documents/unknown')->getStatusCode());
+        self::assertSame('[]', $this->apiClient->getJson('/documents/recommendations?id=PRODUCT-1')->getRawResponse());
     }
 
     private static function product(string $id, string $name): ProductBaseDto

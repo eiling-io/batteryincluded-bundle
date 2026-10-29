@@ -95,8 +95,9 @@ framework:
 | `SyncDocumentsMessage` | `ids`, `collection = 'default'`, `deleteMissing = false` | `SyncDocumentsHandler` → `DocumentSynchronizer::syncByIds()` |
 | `DeleteDocumentsMessage` | `ids`, `collection = 'default'` | `DeleteDocumentsHandler` → `DocumentSynchronizer::delete()` |
 
-API errors (`ApiException`) are thrown and retried by the transport. Rejected documents throw an
-`UnrecoverableMessageHandlingException`, retrying them would fail again.
+API errors (`ApiException`) and network errors (`NetworkException` of the SDK) are thrown and retried by the
+transport. Rejected documents and documents that cannot be encoded (`InvalidDocumentException`, e.g. a price of `NAN`)
+throw an `UnrecoverableMessageHandlingException`, retrying them would fail again.
 
 {: .important }
 Use `deleteMissing` only if the providers of all affected document types implement `PartialDataProviderInterface`.

@@ -13,6 +13,7 @@ use Batteryincluded\BatteryincludedBundleTests\Fixtures\ArrayProvider;
 use Batteryincluded\BatteryincludedBundleTests\Fixtures\Collections;
 use Batteryincluded\BatteryincludedBundleTests\Fixtures\FakeHttpClient;
 use BatteryIncludedSdk\Dto\BlogBaseDto;
+use BatteryIncludedSdk\Exception\NetworkException;
 use BatteryIncludedSdk\Service\Response;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\Console\Command\Command;
@@ -81,7 +82,27 @@ class ExportCommandTest extends TestCase
 
         self::assertSame(Command::FAILURE, $tester->execute(['--force' => true]));
         self::assertCount(1, $this->http->requests);
-        self::assertStringContainsString('status 500', $tester->getDisplay());
+        self::assertStringContainsString('status 500: internal error', $tester->getDisplay());
+    }
+
+    public function testStopsBeforeTheCommitOnNetworkErrors(): void
+    {
+        $this->http->queue(new NetworkException('POST https://api.test failed: Connection refused'));
+        $tester = $this->tester([new ArrayProvider(4)], 2);
+
+        self::assertSame(Command::FAILURE, $tester->execute(['--force' => true]));
+        self::assertStringContainsString('Connection refused', $tester->getDisplay());
+        self::assertStringContainsString('not committed', $tester->getDisplay());
+    }
+
+    public function testDryRunReportsDocumentsThatCannotBeEncoded(): void
+    {
+        $provider = new ArrayProvider(2);
+        $provider->documents[1]->setPrice(NAN);
+        $tester = $this->tester([$provider]);
+
+        self::assertSame(Command::FAILURE, $tester->execute(['--dry-run' => true], ['interactive' => false]));
+        self::assertStringContainsString('PRODUCT-2 cannot be encoded', $tester->getDisplay());
     }
 
     public function testFullImportNeedsForceWithoutInteraction(): void

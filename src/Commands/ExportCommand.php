@@ -13,6 +13,7 @@ use Batteryincluded\BatteryincludedBundle\Exception\ApiException;
 use Batteryincluded\BatteryincludedBundle\Provider\DataProviderInterface;
 use Batteryincluded\BatteryincludedBundle\Sync\ExportReport;
 use Batteryincluded\BatteryincludedBundle\Sync\SyncResult;
+use BatteryIncludedSdk\Exception\BatteryIncludedException;
 use BatteryIncludedSdk\Service\Response;
 use BatteryIncludedSdk\Service\SyncService;
 use Symfony\Component\Console\Attribute\AsCommand;
@@ -189,8 +190,9 @@ class ExportCommand extends Command
                     ++$statistics[$key]['batches'];
 
                     if ($dryRun) {
+                        // encoded like the real export, throws an InvalidDocumentException with the document id
+                        $syncService->generateNDJSON($batch);
                         foreach ($batch as $document) {
-                            json_encode($document, JSON_THROW_ON_ERROR);
                             $id = $document->getIdentifier();
                             if (isset($documentIds[$id])) {
                                 $duplicates[$id] = true;
@@ -221,7 +223,7 @@ class ExportCommand extends Command
                 $progress?->display();
                 $this->send($io, $result, $syncService->syncFullBatchElements($transactionId, true, ...$pending), count($pending));
             }
-        } catch (ApiException|\JsonException $exception) {
+        } catch (BatteryIncludedException $exception) {
             $progress?->clear();
             $io->error([
                 $exception->getMessage(),

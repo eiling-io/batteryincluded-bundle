@@ -63,9 +63,7 @@ class DemoController
         }
 
         $hits = $result?->getHits() ?? [];
-        // translated categories of the language, the untranslated categories as long as the api delivers none
-        $categoryField = $this->demo->categoryField($result?->getBody()['facet_counts'] ?? []);
-        $facets = $result !== null ? $this->demo->visibleFacets($result->getFacets($categoryField), $categoryField) : [];
+        $facets = $result !== null ? $this->demo->visibleFacets($result->getFacets()) : [];
 
         // teasers are placed between the products, all other extensions are shown above the result
         $items = array_map(static fn (array $hit) => match ($hit['document']['type'] ?? 'PRODUCT') {
@@ -147,7 +145,7 @@ class DemoController
 
         // labels of the properties are translated in the backend and delivered with the facets
         $facetLabels = [];
-        foreach ($result?->getFacets($categoryField) ?? [] as $facet) {
+        foreach ($result?->getFacets() ?? [] as $facet) {
             $facetLabels[$facet->getFieldName()] = $facet->getFieldLabel();
         }
         $propertyLabels = [];

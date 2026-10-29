@@ -161,8 +161,9 @@ link the suggested documents to your routes (`$id` = `PRODUCT-5`). Suggested doc
 selected under Suggest in the backend: select `id`, the title and optionally `imageUrl`, `price`, `teaser`.
 
 Twig (with TwigBundle): `bi_search(query, {type, filters, sort, per_page})`, `bi_recommendations('PRODUCT-5', 'together')`,
-`bi_highlights()`, `bi_document_url(document)`, filter `|bi_highlight`. Failed calls return an empty result and are
-logged (thrown in debug).
+`bi_highlights()`, `bi_document_url(document)`, filter `|bi_highlight`. Search and recommendations return the documents
+with translations and availability of the request merged into `_<TYPE>`, highlights are translated. Failed calls return
+an empty result and are logged (thrown in debug).
 
 Prices per country: configure the availability scope, it is stored in the request attribute `_batteryincluded_availability`:
 

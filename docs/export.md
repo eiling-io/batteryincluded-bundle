@@ -140,6 +140,8 @@ batch. It protects the collection:
 | Situation | Behaviour |
 |---|---|
 | The API answers with an error status | Stops, the transaction is not committed, the collection is unchanged |
+| The API cannot be reached (DNS, connection, timeout) | Stops like on an error status |
+| A document cannot be encoded as JSON (e.g. a price of `NAN`) | Stops with the id of the document |
 | The API rejects documents | Stops before the commit and lists the rejected documents |
 | The providers deliver no document | Stops, an empty commit would empty the collection |
 | No interaction and no `--force` | Stops, nothing is sent |
@@ -163,8 +165,8 @@ without transaction, **nothing is deleted**. Documents the provider no longer de
 ## Dry run
 
 `--dry-run` loads every batch, dispatches the [`DocumentsEvent`](events#documentsevent) and serializes each document
-like the export would. It reports serialization errors (e.g. invalid UTF-8) and document ids delivered more than
-once. Nothing is sent and no lock is taken.
+like the export would. It reports documents that cannot be encoded (e.g. a price of `NAN`, invalid UTF-8 is replaced
+like in the export) and document ids delivered more than once. Nothing is sent and no lock is taken.
 
 ## Lock
 

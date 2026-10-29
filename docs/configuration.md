@@ -30,6 +30,9 @@ batteryincluded:
 
     http_client: ~                     # service id of a Symfony http client, null uses curl
     write_timeout: 300                 # seconds, import, update and delete calls with the Symfony http client
+    curl:
+        timeout: 10                    # seconds, searches, suggestions and recommendations with curl, 0 for no limit
+        connect_timeout: 5             # seconds, 0 for no limit
     in_memory_api: false               # replaces the api in tests, see Testing your application
 
     cache:
@@ -98,10 +101,17 @@ $registry->getConfig('ch');     // ['baseUrl' => ..., 'collection' => ..., 'apiK
 All commands take `--collection=<name>`, the [Doctrine attribute](doctrine) and the [messages](single-documents#messenger)
 take the name as well.
 
+## Curl
+
+By default the SDK sends the requests with curl. A search, suggestion or recommendation is aborted after
+`curl.timeout` seconds, so a hanging API does not block every page until the PHP timeout. Imports, updates and deletes
+have no limit: the API answers the commit of a full import only after indexing. A failed connection throws the
+`NetworkException` of the SDK.
+
 ## Symfony http client
 
-By default the SDK sends the requests with curl. With `http_client` a Symfony http client sends them: timeouts,
-retries and proxies are configured like for every other client, tests can replace it with the `MockHttpClient`, and
+With `http_client` a Symfony http client sends the requests instead of curl: timeouts, retries and proxies are
+configured like for every other client, tests can replace it with the `MockHttpClient`, and
 the calls appear in the HttpClient panel of the profiler as well.
 
 ```yaml

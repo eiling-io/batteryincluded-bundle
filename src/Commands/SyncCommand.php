@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Batteryincluded\BatteryincludedBundle\Commands;
 
 use Batteryincluded\BatteryincludedBundle\BatteryincludedBundle;
-use Batteryincluded\BatteryincludedBundle\Exception\ApiException;
 use Batteryincluded\BatteryincludedBundle\Sync\DocumentSynchronizer;
+use BatteryIncludedSdk\Exception\BatteryIncludedException;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
@@ -45,7 +45,7 @@ class SyncCommand extends Command
                 ['documents' => $documents, 'missing' => $missing] = $this->synchronizer->findDocuments($ids, $collection);
                 foreach ($documents as $document) {
                     $io->section($document->getIdentifier());
-                    $io->writeln((string) json_encode($document, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR));
+                    $io->writeln((string) json_encode($document, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE | JSON_THROW_ON_ERROR));
                 }
                 if ($missing !== []) {
                     $io->warning('No document for: ' . implode(', ', $missing));
@@ -56,7 +56,7 @@ class SyncCommand extends Command
             }
 
             $result = $this->synchronizer->syncByIds($ids, $collection, (bool) $input->getOption('delete-missing'));
-        } catch (ApiException|\InvalidArgumentException|\LogicException|\JsonException $exception) {
+        } catch (BatteryIncludedException|\InvalidArgumentException|\LogicException|\JsonException $exception) {
             $io->error($exception->getMessage());
 
             return Command::FAILURE;

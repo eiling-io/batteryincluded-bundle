@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Batteryincluded\BatteryincludedBundleTests\Unit\Client;
 
 use Batteryincluded\BatteryincludedBundle\Client\SymfonyHttpClient;
+use BatteryIncludedSdk\Exception\NetworkException;
 use PHPUnit\Framework\TestCase;
 use Symfony\Component\HttpClient\Exception\TransportException;
 use Symfony\Component\HttpClient\MockHttpClient;
@@ -53,8 +54,8 @@ class SymfonyHttpClientTest extends TestCase
     {
         $client = new SymfonyHttpClient(new MockHttpClient(static fn () => throw new TransportException('Connection refused')));
 
-        $this->expectException(\RuntimeException::class);
-        $this->expectExceptionMessage('Connection refused');
+        $this->expectException(NetworkException::class);
+        $this->expectExceptionMessage('GET https://api.test/x failed: Connection refused');
 
         $client->send('https://api.test/x', 'GET', [], '');
     }
