@@ -69,16 +69,38 @@ class BatteryIncludedRuntimeTest extends TestCase
         self::assertSame(['related', 'also', 'together'], array_keys($runtime->recommendations('7', null)));
         self::assertSame([], $runtime->recommendations('BLOG-1', 'also'));
 
-        self::assertStringEndsWith('/documents/recommendations?id=PRODUCT-1', $this->http->requests[0]['url']);
-        self::assertStringEndsWith('/documents/recommendations?id=PRODUCT-7', $this->http->requests[1]['url']);
-        self::assertStringEndsWith('/documents/recommendations?id=BLOG-1', $this->http->requests[2]['url']);
+        self::assertStringEndsWith('/documents/recommendations?id=PRODUCT-1&v%5Blocale%5D=de', $this->http->requests[0]['url']);
+        self::assertStringEndsWith('/documents/recommendations?id=PRODUCT-7&v%5Blocale%5D=de', $this->http->requests[1]['url']);
+        self::assertStringEndsWith('/documents/recommendations?id=BLOG-1&v%5Blocale%5D=de', $this->http->requests[2]['url']);
+    }
+
+    public function testRecommendationsAreResolvedForTheLocaleAndAvailabilityOfTheRequest(): void
+    {
+        $this->http->queue(new Response((string) json_encode([[
+            'type' => 'related',
+            'id' => 'PRODUCT-2',
+            '_PRODUCT' => ['name' => 'Default', 'price' => 10],
+            '_PRODUCT_i18n' => ['en' => ['name' => 'English']],
+            '_PRODUCT_availability' => ['ch' => ['price' => 12]],
+        ]]), 200));
+        $request = new Request();
+        $request->setLocale('en');
+        $request->attributes->set(SearchStructValueResolver::AVAILABILITY_ATTRIBUTE, 'ch');
+
+        $recommendations = $this->runtime($request)->recommendations('PRODUCT-1');
+
+        self::assertSame('English', $recommendations[0]['_PRODUCT']['name']);
+        self::assertSame(12, $recommendations[0]['_PRODUCT']['price']);
+        parse_str((string) parse_url($this->http->requests[0]['url'], PHP_URL_QUERY), $query);
+        self::assertSame(['locale' => 'en', 'availability' => 'ch'], $query['v']);
     }
 
     public function testHighlights(): void
     {
         $this->http->queue(new Response('{"searches":["laptop"],"querySuggestions":["Which laptop?"]}', 200));
 
-        self::assertSame(['searches' => ['laptop'], 'querySuggestions' => ['Which laptop?']], $this->runtime()->highlights());
+        self::assertSame(['searches' => ['laptop'], 'querySuggestions' => ['Which laptop?']], $this->runtime()->highlights(['locale' => 'en_US']));
+        self::assertStringEndsWith('/documents/highlights?v%5Blocale%5D=en-us', $this->http->requests[0]['url']);
     }
 
     public function testFailedCallsAreLoggedAndReturnAnEmptyResult(): void

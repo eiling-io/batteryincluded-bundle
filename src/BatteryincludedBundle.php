@@ -117,6 +117,14 @@ class BatteryincludedBundle extends AbstractBundle
                     ->defaultValue(300)
                     ->min(1)
                 ->end()
+                ->arrayNode('curl')
+                    ->info('Timeouts of curl, without http_client. Imports, updates and deletes have no limit, the commit of a full import waits for indexing.')
+                    ->addDefaultsIfNotSet()
+                    ->children()
+                        ->floatNode('timeout')->info('Seconds for a search, suggestion or recommendation, 0 for no limit')->defaultValue(10)->min(0)->end()
+                        ->floatNode('connect_timeout')->info('Seconds to establish the connection, 0 for no limit')->defaultValue(5)->min(0)->end()
+                    ->end()
+                ->end()
                 ->arrayNode('cache')
                     ->info('Caches GET responses of rarely changing endpoints')
                     ->canBeEnabled()
@@ -322,6 +330,10 @@ class BatteryincludedBundle extends AbstractBundle
         if ($config['in_memory_api']) {
             $builder->register(InMemoryApi::class, InMemoryApi::class)->setPublic(true);
         }
+
+        $builder->getDefinition(CurlHttpClient::class)
+            ->setArgument('$readTimeout', $config['curl']['timeout'])
+            ->setArgument('$connectTimeout', $config['curl']['connect_timeout']);
 
         $transport = match (true) {
             $config['in_memory_api'] => new Reference(InMemoryApi::class),

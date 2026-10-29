@@ -75,18 +75,18 @@ class BatteryIncludedRuntime implements RuntimeExtensionInterface
      *
      * @param string      $id   document id (`PRODUCT-1`) or the identifier of a product (`1`)
      * @param string|null $kind related, also or together, null returns all three
-     * @param array{collection?: string, limit?: int} $options
+     * @param array{collection?: string, limit?: int, locale?: string, availability?: string} $options
      *
-     * @return array<mixed>
+     * @return array<mixed> documents with translations and availability merged
      */
     public function recommendations(string $id, ?string $kind = 'related', array $options = []): array
     {
-        $this->assertOptions($options, ['collection', 'limit']);
+        $this->assertOptions($options, ['collection', 'limit', 'locale', 'availability']);
         [$type, $identifier] = preg_match('/^([A-Z0-9_]+)-(.+)$/', $id, $matches) === 1 ? [$matches[1], $matches[2]] : ['PRODUCT', $id];
 
         return $this->call('recommendations', function () use ($type, $identifier, $kind, $options) {
             $recommendations = $this->collections->get($this->collection($options), RecommendationsService::class)
-                ->recommendByIdentifier($identifier, $type)
+                ->recommendByIdentifier($identifier, $type, $this->locale($options), $this->availability($options))
                 ->getRecommendations();
             $recommendations = array_merge(['related' => [], 'also' => [], 'together' => []], $recommendations);
             $limit = isset($options['limit']) ? (int) $options['limit'] : null;
@@ -97,17 +97,17 @@ class BatteryIncludedRuntime implements RuntimeExtensionInterface
     }
 
     /**
-     * Highlights maintained in the backend: `searches` and `querySuggestions`.
+     * Highlights maintained in the backend: `searches` and `querySuggestions`, translated into the locale.
      *
-     * @param array{collection?: string} $options
+     * @param array{collection?: string, locale?: string} $options
      *
      * @return array{searches: array<mixed>, querySuggestions: array<mixed>}
      */
     public function highlights(array $options = []): array
     {
-        $this->assertOptions($options, ['collection']);
+        $this->assertOptions($options, ['collection', 'locale']);
 
-        return $this->call('highlights', fn () => $this->collections->get($this->collection($options), HighlightsService::class)->getHighlights()->getAll(), ['searches' => [], 'querySuggestions' => []]);
+        return $this->call('highlights', fn () => $this->collections->get($this->collection($options), HighlightsService::class)->getHighlights($this->locale($options))->getAll(), ['searches' => [], 'querySuggestions' => []]);
     }
 
     /**

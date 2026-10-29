@@ -9,7 +9,7 @@ read [llms-full.txt](https://bundle.batteryincluded.eiling.io/llms-full.txt).
 ## Docs
 
 - [Getting started](https://raw.githubusercontent.com/eiling-io/batteryincluded-bundle/main/docs/getting-started.md): installation, credentials, first search
-- [Configuration](https://raw.githubusercontent.com/eiling-io/batteryincluded-bundle/main/docs/configuration.md): all options, several collections, Symfony http client and write_timeout, cache, logging
+- [Configuration](https://raw.githubusercontent.com/eiling-io/batteryincluded-bundle/main/docs/configuration.md): all options, several collections, curl timeouts, Symfony http client and write_timeout, cache, logging
 - [Export](https://raw.githubusercontent.com/eiling-io/batteryincluded-bundle/main/docs/export.md): data providers, own document types, bi:export, full import and its safety nets, JSON report, Symfony Scheduler
 - [Single documents](https://raw.githubusercontent.com/eiling-io/batteryincluded-bundle/main/docs/single-documents.md): bi:sync, bi:delete, DocumentSynchronizer, DocumentChangeQueue, Messenger
 - [Doctrine](https://raw.githubusercontent.com/eiling-io/batteryincluded-bundle/main/docs/doctrine.md): #[BatteryIncludedDocument], sync of entities after flush

@@ -96,7 +96,7 @@ class CollectionComparator
         $page = 1;
         do {
             $query = http_build_query(['q' => '', 'f' => $types !== [] ? ['type' => $types] : [], 'page' => $page, 'per_page' => self::PAGE_SIZE]);
-            $body = ApiException::assertSuccessful($apiClient->getJson('/documents/browse?' . $query, []), 'Browse')->getBody();
+            $body = ApiException::assertSuccessful($apiClient->getJson('/documents/browse?' . $query), 'Browse')->getBody();
             $found = (int) ($body['found'] ?? 0);
             $hits = (array) ($body['hits'] ?? []);
             foreach ($hits as $hit) {

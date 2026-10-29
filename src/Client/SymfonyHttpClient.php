@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Batteryincluded\BatteryincludedBundle\Client;
 
 use BatteryIncludedSdk\Client\HttpClientInterface;
+use BatteryIncludedSdk\Exception\NetworkException;
 use BatteryIncludedSdk\Service\Response;
 use Symfony\Contracts\HttpClient\Exception\TransportExceptionInterface;
 use Symfony\Contracts\HttpClient\HttpClientInterface as SymfonyHttpClientInterface;
@@ -41,7 +42,7 @@ class SymfonyHttpClient implements HttpClientInterface
             // like curl the sdk gets error responses as well, they are not thrown
             return new Response($response->getContent(false), $response->getStatusCode());
         } catch (TransportExceptionInterface $exception) {
-            throw new \RuntimeException($exception->getMessage(), 0, $exception);
+            throw new NetworkException(sprintf('%s %s failed: %s', $method, $url, $exception->getMessage()), 0, $exception);
         }
     }
 }

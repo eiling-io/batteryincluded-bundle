@@ -206,8 +206,8 @@ Available as soon as the TwigBundle is enabled. Locale and availability default 
 | Function | Returns |
 |---|---|
 | `bi_search(query = '', options = {})` | Documents of the hits, translations and availability merged |
-| `bi_recommendations(id, kind = 'related', options = {})` | Recommendations of `related`, `also` or `together`, `null` returns all three |
-| `bi_highlights(options = {})` | `{searches, querySuggestions}` |
+| `bi_recommendations(id, kind = 'related', options = {})` | Recommendations of `related`, `also` or `together`, `null` returns all three, translations and availability merged |
+| `bi_highlights(options = {})` | `{searches, querySuggestions}` in the locale |
 | `bi_document_url(document)` | Url by the [DocumentUrlResolverInterface](#2-link-the-documents) services |
 | `\|bi_highlight` (filter) | Escaped value with the `<mark>` tags kept |
 
@@ -217,10 +217,11 @@ Available as soon as the TwigBundle is enabled. Locale and availability default 
 | `type` | Shortcut for the filter `type`, e.g. `BLOG` |
 | `filters` | `{'_PRODUCT.brand': ['Acme']}`, a single value is allowed |
 | `sort`, `preset` | Like `BrowseSearchStruct` |
-| `locale`, `availability` | Override the values of the request |
+| `locale`, `availability` | Override the values of the request, also for `bi_recommendations` (both) and `bi_highlights` (`locale`) |
 | `collection` | Name in the bundle configuration, also for `bi_recommendations` and `bi_highlights` |
 
-`bi_recommendations` takes the document id (`PRODUCT-1`) or the identifier of a product (`1`).
+`bi_recommendations` takes the document id (`PRODUCT-1`) or the identifier of a product (`1`), further options are
+`limit`, `locale`, `availability` and `collection`.
 
 {: .note }
 A failed API call must not break the page: the functions log the error to the `batteryincluded` channel and return an

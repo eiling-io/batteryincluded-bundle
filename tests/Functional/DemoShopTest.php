@@ -23,6 +23,17 @@ class DemoShopTest extends FunctionalTestCase
         self::assertSame(['locale' => 'en', 'availability' => 'ch'], array_intersect_key($query['v'], ['locale' => 1, 'availability' => 1]));
     }
 
+    public function testShowsTheFacetsOfTheLanguage(): void
+    {
+        $content = (string) $this->request('/demo/?q=laptop&lang=en')->getContent();
+
+        // translated category tree, the untranslated categories and the facets of other languages are hidden
+        self::assertStringContainsString('Notebooks', $content);
+        self::assertStringNotContainsString('Rechner', $content);
+        self::assertStringContainsString('Colour', $content);
+        self::assertStringNotContainsString('Farbe', $content);
+    }
+
     public function testRendersAContentPage(): void
     {
         $content = (string) $this->request('/demo/detail/CONTENT-4')->getContent();

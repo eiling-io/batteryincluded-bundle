@@ -44,6 +44,9 @@ batteryincluded:
 
     http_client: ~             # service id of a Symfony http client, null uses curl
     write_timeout: 300         # seconds, import, update and delete calls with the Symfony http client
+    curl:
+        timeout: 10            # seconds, searches with curl, imports have no limit
+        connect_timeout: 5     # seconds
     cache:
         enabled: false
         pool: cache.app

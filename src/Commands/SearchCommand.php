@@ -77,16 +77,17 @@ class SearchCommand extends Command
             return Command::FAILURE;
         }
 
+        if (!$result->isSuccessful()) {
+            $io->error(sprintf('The api answered with status %d: %s', $result->getStatusCode(), $result->getErrorMessage()));
+
+            return Command::FAILURE;
+        }
+
         $body = $result->getBody();
         if ($input->getOption('json')) {
             $output->writeln((string) json_encode($body, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE));
 
             return Command::SUCCESS;
-        }
-        if (isset($body['message']) && !isset($body['hits'])) {
-            $io->error('The api answered: ' . (is_scalar($body['message']) ? $body['message'] : json_encode($body['message'])));
-
-            return Command::FAILURE;
         }
 
         $rows = [];

@@ -40,7 +40,13 @@ class MockApi
                 'page' => 1,
                 'search_time_ms' => 2,
                 'hits' => [['document' => self::document($url)]],
-                'facet_counts' => [],
+                // the gateway delivers the facets of the requested locale without locale and the ones of all others with it
+                'facet_counts' => [
+                    ['field_name' => '_PRODUCT.categories', 'type' => 'select', 'counts' => [['value' => 'Rechner', 'count' => 1]]],
+                    ['field_name' => '_PRODUCT_i18n.categories', 'type' => 'select', 'counts' => [['value' => 'Computers>Notebooks', 'count' => 1]]],
+                    ['field_name' => '_PRODUCT_i18n.properties.Color', 'field_label' => 'Colour', 'type' => 'select', 'counts' => [['value' => 'Red', 'count' => 1]]],
+                    ['field_name' => '_PRODUCT_i18n.de.properties.Color', 'field_label' => 'Farbe', 'type' => 'select', 'counts' => [['value' => 'Rot', 'count' => 1]]],
+                ],
             ])),
             str_ends_with($path, '/documents/presets') => new MockResponse('[{"id":"sale","name":"Sale"}]'),
             str_ends_with($path, '/documents/suggest') => new MockResponse((string) json_encode(self::SUGGEST)),

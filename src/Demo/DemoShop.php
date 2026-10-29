@@ -398,36 +398,32 @@ class DemoShop implements ResetInterface
     }
 
     /**
-     * Translated categories of the language, the untranslated categories as long as the api delivers none.
-     */
-    public function categoryField(array $facetCounts): string
-    {
-        $translatedField = I18nResolver::getKey('PRODUCT') . '.categories';
-
-        return in_array($translatedField, array_column($facetCounts, 'field_name'), true) ? $translatedField : '_PRODUCT.categories';
-    }
-
-    /**
      * Facets which are shown in the sidebar.
      *
-     * The gateway resolves the translated facets for the requested locale (`_PRODUCT_i18n.*`),
-     * facets which are still scoped by another locale (`_PRODUCT_i18n.en.*`) are hidden.
+     * The sdk skips the facets of other locales (`_PRODUCT_i18n.en.*`) and renders the translated categories of the
+     * language as tree, the untranslated categories as long as the api delivers none.
      *
-     * @param FacetDto[] $facets
+     * @param FacetDto[] $facets of BrowseResponse::getFacets()
      *
      * @return array<string, array{id: string, facet: FacetDto, label: string, kind: string, values: list<mixed>}>
      */
-    public function visibleFacets(array $facets, string $categoryField): array
+    public function visibleFacets(array $facets): array
     {
+        $categoryField = null;
+        foreach ($facets as $facet) {
+            if ($facet instanceof FacetCategoryDto && in_array(explode('.', $facet->getFieldName())[0], ['_PRODUCT', I18nResolver::getKey('PRODUCT')], true)) {
+                $categoryField = $facet->getFieldName();
+                break;
+            }
+        }
+
         $visible = [];
         foreach ($facets as $facet) {
             $field = $facet->getFieldName();
             // the type facet stays visible, e.g. to hide blog posts
             $isTechnicalFacet = str_starts_with($field, '_availability.');
             $isOtherCategoryFacet = str_ends_with($field, 'categories') && $field !== $categoryField;
-            $isFacetOfOtherLanguage = preg_match('/^_[A-Z]+' . I18nResolver::SUFFIX . '\.([a-z]{2}(-[a-z0-9]+)*)\./', $field, $matches) === 1
-                && $matches[1] !== $this->getLocale();
-            if ($isTechnicalFacet || $isOtherCategoryFacet || $isFacetOfOtherLanguage) {
+            if ($isTechnicalFacet || $isOtherCategoryFacet) {
                 continue;
             }
 

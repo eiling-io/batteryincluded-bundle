@@ -53,6 +53,18 @@ class HandlersTest extends TestCase
         (new SyncDocumentsHandler($this->synchronizer))(new SyncDocumentsMessage(['PRODUCT-1']));
     }
 
+    public function testDocumentsThatCannotBeEncodedAreNotRetried(): void
+    {
+        $provider = new ArrayProvider(1);
+        $provider->documents[0]->setPrice(NAN);
+        $synchronizer = new DocumentSynchronizer(Collections::registry($this->http, [$provider]));
+
+        $this->expectException(UnrecoverableMessageHandlingException::class);
+        $this->expectExceptionMessage('PRODUCT-1 cannot be encoded');
+
+        (new SyncDocumentsHandler($synchronizer))(new SyncDocumentsMessage(['PRODUCT-1']));
+    }
+
     public function testApiErrorsAreRetried(): void
     {
         $this->http->queue(new Response('{"message":"bad gateway"}', 502));

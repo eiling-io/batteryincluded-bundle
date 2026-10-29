@@ -68,16 +68,16 @@ class StatusCommand extends Command
 
             $start = microtime(true);
             try {
-                $response = $this->collections->get($name, ApiClient::class)->getJson('/documents/browse?' . http_build_query(['q' => '', 'per_page' => 1]), []);
+                $response = $this->collections->get($name, ApiClient::class)->getJson('/documents/browse?' . http_build_query(['q' => '', 'per_page' => 1]));
                 $duration = (int) round((microtime(true) - $start) * 1000);
                 $body = $response->getBody();
-                $ok = $response->getStatusCode() < 400;
+                $ok = $response->isSuccessful();
                 $rows[] = ['Status' => sprintf('<%s>%d</> in %d ms', $ok ? 'info' : 'error', $response->getStatusCode(), $duration)];
                 if ($ok) {
                     $rows[] = ['Documents' => (string) ($body['found'] ?? $body['out_of'] ?? '?')];
                     $rows[] = ['Search time' => ($body['search_time_ms'] ?? '?') . ' ms'];
                 } else {
-                    $rows[] = ['Response' => mb_substr($response->getRawResponse(), 0, 500)];
+                    $rows[] = ['Response' => mb_substr((string) $response->getErrorMessage(), 0, 500)];
                 }
             } catch (\Throwable $exception) {
                 $ok = false;

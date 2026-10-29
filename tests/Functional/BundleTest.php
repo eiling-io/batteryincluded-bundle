@@ -15,6 +15,7 @@ use Batteryincluded\BatteryincludedBundle\Scheduler\ExportScheduleProvider;
 use Batteryincluded\BatteryincludedBundle\Sync\DocumentChangeQueue;
 use Batteryincluded\BatteryincludedBundle\Test\InMemoryApi;
 use Batteryincluded\BatteryincludedBundleTests\Fixtures\MockApi;
+use BatteryIncludedSdk\Client\CurlHttpClient;
 use BatteryIncludedSdk\Presets\PresetsService;
 use BatteryIncludedSdk\Shop\BrowseSearchStruct;
 use BatteryIncludedSdk\Shop\BrowseService;
@@ -123,6 +124,14 @@ class BundleTest extends FunctionalTestCase
         self::assertSame(123.0, $delete['timeout']);
         self::assertSame('GET', $status['method']);
         self::assertNotSame(123.0, $status['timeout'], 'searches keep the timeout of the client');
+    }
+
+    public function testConfiguresTheTimeoutsOfCurl(): void
+    {
+        $curl = $this->container(['http_client' => null, 'curl' => ['timeout' => 2.5, 'connect_timeout' => 0]])->get(CurlHttpClient::class);
+
+        $timeouts = array_map(static fn (string $property) => (new \ReflectionProperty(CurlHttpClient::class, $property))->getValue($curl), ['readTimeout', 'connectTimeout', 'writeTimeout']);
+        self::assertSame([2.5, 0.0, 0.0], $timeouts);
     }
 
     public function testRegistersTheMessageHandlers(): void

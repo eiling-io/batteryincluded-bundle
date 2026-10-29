@@ -6,8 +6,8 @@ namespace Batteryincluded\BatteryincludedBundle\Commands;
 
 use Batteryincluded\BatteryincludedBundle\BatteryincludedBundle;
 use Batteryincluded\BatteryincludedBundle\Collection\CollectionRegistry;
-use Batteryincluded\BatteryincludedBundle\Exception\ApiException;
 use Batteryincluded\BatteryincludedBundle\Sync\CollectionComparator;
+use BatteryIncludedSdk\Exception\BatteryIncludedException;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
@@ -65,7 +65,7 @@ class DiffCommand extends Command
             $io->error($exception->getMessage());
 
             return Command::INVALID;
-        } catch (ApiException $exception) {
+        } catch (BatteryIncludedException $exception) {
             $io->error($exception->getMessage());
 
             return Command::FAILURE;

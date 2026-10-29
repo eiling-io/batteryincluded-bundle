@@ -46,6 +46,8 @@ bin/console bi:search laptop --json
 | `--facets` | | Shows the facets with their values |
 | `--json` | | Prints the raw response |
 
+An error status of the API is printed with its message and the command fails.
+
 ## bi:export
 
 Full import of all [data providers](export). See [Export](export#options) for all options.
